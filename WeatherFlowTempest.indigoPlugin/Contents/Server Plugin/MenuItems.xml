@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<MenuItems>
+
+	<MenuItem id="menuListDiscoveredDevices">
+		<Name>List Discovered WeatherFlow Devices</Name>
+		<CallbackMethod>menuListDiscoveredDevices</CallbackMethod>
+	</MenuItem>
+
+	<MenuItem id="menuRestartListener">
+		<Name>Restart UDP Listener</Name>
+		<CallbackMethod>menuRestartListener</CallbackMethod>
+	</MenuItem>
+
+</MenuItems>

@@ -1,0 +1,336 @@
+<?xml version="1.0"?>
+<Devices>
+
+	<!-- ============================================================
+	     Tempest Weather Station  (serial prefix ST-)
+	     ============================================================ -->
+	<Device type="custom" id="tempestStation" allowUserCreation="true">
+		<Name>Tempest Weather Station</Name>
+		<UiDisplayStateId>air_temperature</UiDisplayStateId>
+
+		<ConfigUI>
+			<Field id="sep0" type="separator"/>
+			<Field id="lbl0" type="label" fontSize="large" fontColor="blue">
+				<Label>WeatherFlow Tempest Configuration</Label>
+			</Field>
+			<Field id="sep1" type="separator"/>
+
+			<Field id="lbl_disc" type="label">
+				<Label>Select your Tempest from the list below.
+Devices appear once the hub starts broadcasting on the network.
+Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</Label>
+			</Field>
+			<Field id="sep1b" type="separator"/>
+
+			<Field id="serialNumber"
+				   type="menu"
+				   defaultValue=""
+				   tooltip="Tempest devices discovered on the network. Reload this dialog if the list is empty.">
+				<Label>Tempest Device:</Label>
+				<List class="self" filter="" method="getDiscoveredDeviceList" dynamicReload="true"/>
+			</Field>
+
+			<Field id="sep3" type="separator"/>
+
+			<Field id="lbl_alt_hdr" type="label">
+				<Label>Optional: Altitude for Sea Level Pressure</Label>
+			</Field>
+			<Field id="altitude" type="textfield" defaultValue="0" tooltip="Station altitude in metres above sea level. Used to calculate sea_level_pressure. Set to 0 to skip.">
+				<Label>Altitude (m):</Label>
+			</Field>
+			<Field id="lbl_alt" type="label" fontSize="small" fontColor="grey">
+				<Label>0 = omit sea_level_pressure state</Label>
+			</Field>
+
+			<Field id="sep4" type="separator"/>
+		</ConfigUI>
+
+		<States>
+			<!-- Primary weather measurements -->
+			<State id="air_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Air Temperature (°C)</TriggerLabel>
+				<ControlPageLabel>Air Temp °C</ControlPageLabel>
+			</State>
+			<State id="dew_point_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Dew Point Temperature (°C)</TriggerLabel>
+				<ControlPageLabel>Dew Point °C</ControlPageLabel>
+			</State>
+			<State id="wet_bulb_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wet Bulb Temperature (°C)</TriggerLabel>
+				<ControlPageLabel>Wet Bulb °C</ControlPageLabel>
+			</State>
+			<State id="feels_like_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Feels Like Temperature (°C)</TriggerLabel>
+				<ControlPageLabel>Feels Like °C</ControlPageLabel>
+			</State>
+			<State id="wind_chill_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Chill Temperature (°C)</TriggerLabel>
+				<ControlPageLabel>Wind Chill °C</ControlPageLabel>
+			</State>
+			<State id="heat_index">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Heat Index (°C)</TriggerLabel>
+				<ControlPageLabel>Heat Index °C</ControlPageLabel>
+			</State>
+			<State id="delta_t">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Delta T (°C)</TriggerLabel>
+				<ControlPageLabel>Delta T °C</ControlPageLabel>
+			</State>
+
+			<!-- Atmospheric -->
+			<State id="relative_humidity">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Relative Humidity (%)</TriggerLabel>
+				<ControlPageLabel>Humidity %</ControlPageLabel>
+			</State>
+			<State id="station_pressure">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Station Pressure (mbar)</TriggerLabel>
+				<ControlPageLabel>Pressure mbar</ControlPageLabel>
+			</State>
+			<State id="sea_level_pressure">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Sea Level Pressure (mbar)</TriggerLabel>
+				<ControlPageLabel>SLP mbar</ControlPageLabel>
+			</State>
+			<State id="vapor_pressure">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Vapor Pressure (mbar)</TriggerLabel>
+				<ControlPageLabel>Vapor Press mbar</ControlPageLabel>
+			</State>
+			<State id="air_density">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Air Density (kg/m³)</TriggerLabel>
+				<ControlPageLabel>Air Density kg/m³</ControlPageLabel>
+			</State>
+
+			<!-- Light and radiation -->
+			<State id="illuminance">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Illuminance (lux)</TriggerLabel>
+				<ControlPageLabel>Illuminance lux</ControlPageLabel>
+			</State>
+			<State id="solar_radiation">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Solar Radiation (W/m²)</TriggerLabel>
+				<ControlPageLabel>Solar Rad W/m²</ControlPageLabel>
+			</State>
+			<State id="uv">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>UV Index</TriggerLabel>
+				<ControlPageLabel>UV Index</ControlPageLabel>
+			</State>
+
+			<!-- Precipitation -->
+			<State id="rain_accumulation_previous_minute">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Accumulation Previous Minute (mm)</TriggerLabel>
+				<ControlPageLabel>Rain Accum mm</ControlPageLabel>
+			</State>
+			<State id="rain_rate">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Rate (mm/h)</TriggerLabel>
+				<ControlPageLabel>Rain Rate mm/h</ControlPageLabel>
+			</State>
+			<State id="precipitation_type">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Precipitation Type</TriggerLabel>
+				<ControlPageLabel>Precip Type</ControlPageLabel>
+			</State>
+			<State id="last_rain_start">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last Rain Start Time</TriggerLabel>
+				<ControlPageLabel>Last Rain Start</ControlPageLabel>
+			</State>
+
+			<!-- Lightning -->
+			<State id="lightning_strike_count">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Lightning Strike Count</TriggerLabel>
+				<ControlPageLabel>Lightning Count</ControlPageLabel>
+			</State>
+			<State id="lightning_strike_average_distance">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Lightning Strike Average Distance (km)</TriggerLabel>
+				<ControlPageLabel>Lightning Dist km</ControlPageLabel>
+			</State>
+			<State id="last_strike_distance">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Last Lightning Strike Distance (km)</TriggerLabel>
+				<ControlPageLabel>Last Strike km</ControlPageLabel>
+			</State>
+			<State id="last_strike_energy">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Last Lightning Strike Energy</TriggerLabel>
+				<ControlPageLabel>Last Strike Energy</ControlPageLabel>
+			</State>
+
+			<!-- Wind -->
+			<State id="wind_speed">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Speed (m/s)</TriggerLabel>
+				<ControlPageLabel>Wind Speed m/s</ControlPageLabel>
+			</State>
+			<State id="wind_average">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Speed Average (m/s)</TriggerLabel>
+				<ControlPageLabel>Wind Avg m/s</ControlPageLabel>
+			</State>
+			<State id="wind_gust">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Gust (m/s)</TriggerLabel>
+				<ControlPageLabel>Wind Gust m/s</ControlPageLabel>
+			</State>
+			<State id="wind_lull">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Lull (m/s)</TriggerLabel>
+				<ControlPageLabel>Wind Lull m/s</ControlPageLabel>
+			</State>
+			<State id="wind_direction">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Direction (°)</TriggerLabel>
+				<ControlPageLabel>Wind Dir °</ControlPageLabel>
+			</State>
+			<State id="wind_direction_average">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Direction Average (°)</TriggerLabel>
+				<ControlPageLabel>Wind Dir Avg °</ControlPageLabel>
+			</State>
+			<State id="wind_direction_cardinal">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Wind Direction Cardinal</TriggerLabel>
+				<ControlPageLabel>Wind Dir</ControlPageLabel>
+			</State>
+
+			<!-- Battery and power -->
+			<State id="battery">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Battery Voltage (V)</TriggerLabel>
+				<ControlPageLabel>Battery V</ControlPageLabel>
+			</State>
+			<State id="battery_percent">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Battery Level (%)</TriggerLabel>
+				<ControlPageLabel>Battery %</ControlPageLabel>
+			</State>
+			<State id="power_save_mode">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Power Save Mode</TriggerLabel>
+				<ControlPageLabel>Power Mode</ControlPageLabel>
+			</State>
+
+			<!-- Diagnostics -->
+			<State id="rssi">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>RSSI (dBm)</TriggerLabel>
+				<ControlPageLabel>RSSI dBm</ControlPageLabel>
+			</State>
+			<State id="hub_rssi">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Hub RSSI (dBm)</TriggerLabel>
+				<ControlPageLabel>Hub RSSI dBm</ControlPageLabel>
+			</State>
+			<State id="firmware_revision">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Firmware Revision</TriggerLabel>
+				<ControlPageLabel>Firmware</ControlPageLabel>
+			</State>
+			<State id="hub_sn">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Hub Serial Number</TriggerLabel>
+				<ControlPageLabel>Hub SN</ControlPageLabel>
+			</State>
+			<State id="up_since">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Up Since (UTC)</TriggerLabel>
+				<ControlPageLabel>Up Since</ControlPageLabel>
+			</State>
+			<State id="last_report">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last Report Time (UTC)</TriggerLabel>
+				<ControlPageLabel>Last Report</ControlPageLabel>
+			</State>
+			<State id="sensor_status">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Sensor Status</TriggerLabel>
+				<ControlPageLabel>Sensor Status</ControlPageLabel>
+			</State>
+			<State id="deviceStatus">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Device Status</TriggerLabel>
+				<ControlPageLabel>Status</ControlPageLabel>
+			</State>
+		</States>
+	</Device>
+
+	<!-- ============================================================
+	     WeatherFlow Hub  (serial prefix HB-)
+	     ============================================================ -->
+	<Device type="custom" id="hubStation" allowUserCreation="true">
+		<Name>WeatherFlow Hub</Name>
+		<UiDisplayStateId>deviceStatus</UiDisplayStateId>
+
+		<ConfigUI>
+			<Field id="sep0" type="separator"/>
+			<Field id="lbl0" type="label" fontSize="large" fontColor="blue">
+				<Label>WeatherFlow Hub Configuration</Label>
+			</Field>
+			<Field id="sep1" type="separator"/>
+
+			<Field id="lbl_disc" type="label">
+				<Label>Select your Hub from the list below.</Label>
+			</Field>
+			<Field id="sep1b" type="separator"/>
+
+			<Field id="serialNumber"
+				   type="menu"
+				   defaultValue=""
+				   tooltip="Hub devices discovered on the network.">
+				<Label>Hub Device:</Label>
+				<List class="self" filter="" method="getDiscoveredDeviceList" dynamicReload="true"/>
+			</Field>
+
+			<Field id="sep3" type="separator"/>
+		</ConfigUI>
+
+		<States>
+			<State id="firmware_revision">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Firmware Revision</TriggerLabel>
+				<ControlPageLabel>Firmware</ControlPageLabel>
+			</State>
+			<State id="rssi">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>RSSI (dBm)</TriggerLabel>
+				<ControlPageLabel>RSSI dBm</ControlPageLabel>
+			</State>
+			<State id="up_since">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Up Since (UTC)</TriggerLabel>
+				<ControlPageLabel>Up Since</ControlPageLabel>
+			</State>
+			<State id="uptime">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Uptime (seconds)</TriggerLabel>
+				<ControlPageLabel>Uptime sec</ControlPageLabel>
+			</State>
+			<State id="reset_flags">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Reset Flags</TriggerLabel>
+				<ControlPageLabel>Reset Flags</ControlPageLabel>
+			</State>
+			<State id="deviceStatus">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Device Status</TriggerLabel>
+				<ControlPageLabel>Status</ControlPageLabel>
+			</State>
+		</States>
+	</Device>
+
+</Devices>

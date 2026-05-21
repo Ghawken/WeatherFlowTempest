@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<PluginConfig>
+
+	<Field id="sep0" type="separator"/>
+	<Field id="lbl_title" type="label" fontSize="large" fontColor="blue">
+		<Label>WeatherFlow Tempest Weather Station</Label>
+	</Field>
+	<Field id="space0" type="label" fontColor="black">
+		<Label>Developed by: GlennNZ</Label>
+	</Field>
+	<Field id="sep1" type="separator"/>
+
+	<!-- Device generation -->
+	<Field id="lbl_gen" type="label" fontSize="large" fontColor="blue">
+		<Label>Press the button below to auto-create Indigo devices for every
+WeatherFlow device currently broadcasting on the network.
+Devices are placed in the main folder and can be moved afterward.
+Re-press whenever new Tempest or Hub devices are added.</Label>
+	</Field>
+	<Field id="sep1b" type="separator"/>
+
+	<Field id="generateDevices" type="button" alignWithControl="true" fontSize="large" fontColor="red">
+		<Label>Generate WeatherFlow Devices:</Label>
+		<Title>Generate Devices</Title>
+		<CallbackMethod>generateDevices</CallbackMethod>
+	</Field>
+
+	<Field id="sep2" type="separator"/>
+
+	<!-- UDP Listener -->
+	<Field id="lbl_udp" type="label" fontSize="regular">
+		<Label>UDP Listener Settings</Label>
+	</Field>
+
+	<Field id="udpPort"
+		   type="textfield"
+		   defaultValue="50222"
+		   tooltip="UDP port WeatherFlow hubs broadcast on. Default is 50222.">
+		<Label>UDP Port:</Label>
+	</Field>
+
+	<Field id="udpHost"
+		   type="textfield"
+		   defaultValue="0.0.0.0"
+		   tooltip="Network interface to listen on. Use 0.0.0.0 to listen on all interfaces.">
+		<Label>Listen Address:</Label>
+	</Field>
+
+	<Field id="lbl_udp_note" type="label" fontSize="small" fontColor="grey">
+		<Label>Changes take effect after saving — the listener restarts automatically.</Label>
+	</Field>
+
+	<Field id="sep3" type="separator"/>
+
+	<!-- Debug logging -->
+	<Field id="lbl_debug" type="label" alignText="right">
+		<Label>Debugging Options:</Label>
+	</Field>
+	<Field id="sep3b" type="separator"/>
+	<Field id="lbl_debug_warn" type="label" fontSize="small">
+		<Label>Turn on debugging only when needed. Be careful posting output publicly as it may expose network information.</Label>
+	</Field>
+
+	<Field id="showDebugLevel"
+		   type="menu"
+		   defaultValue="20"
+		   tooltip="Controls how much detail is written to the Indigo event log.">
+		<Label>Indigo Log Level:</Label>
+		<List>
+			<Option value="5">Detailed Debugging Messages</Option>
+			<Option value="10">Debugging Messages</Option>
+			<Option value="20">Informational Messages</Option>
+			<Option value="30">Warning Messages</Option>
+			<Option value="40">Error Messages</Option>
+			<Option value="50">Critical Errors Only</Option>
+		</List>
+	</Field>
+
+	<Field id="showDebugFileLevel"
+		   type="menu"
+		   defaultValue="10"
+		   tooltip="Controls how much detail is written to the plugin log file.">
+		<Label>File Log Level:</Label>
+		<List>
+			<Option value="5">Detailed Debugging Messages</Option>
+			<Option value="10">Debugging Messages</Option>
+			<Option value="20">Informational Messages</Option>
+			<Option value="30">Warning Messages</Option>
+			<Option value="40">Error Messages</Option>
+			<Option value="50">Critical Errors Only</Option>
+		</List>
+	</Field>
+
+	<Field id="previousVersion" type="textfield" defaultValue="0.0.1" hidden="true">
+		<Label/>
+	</Field>
+
+	<Field id="sep4" type="separator"/>
+
+</PluginConfig>
