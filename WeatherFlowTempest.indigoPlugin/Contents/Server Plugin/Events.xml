@@ -1,3 +1,101 @@
 <?xml version="1.0"?>
 <Events>
+
+	<!-- ============================================================
+	     Lightning Strike
+	     ============================================================ -->
+	<Event id="lightningStrike">
+		<Name>Lightning Strike Detected</Name>
+		<ConfigUI>
+			<Field id="sep0" type="separator"/>
+			<Field id="lbl0" type="label" fontSize="large" fontColor="blue">
+				<Label>Lightning Strike Trigger</Label>
+			</Field>
+			<Field id="sep1" type="separator"/>
+
+			<Field id="lbl_dev" type="label">
+				<Label>Fire this trigger when a lightning strike is detected by the selected Tempest.</Label>
+			</Field>
+			<Field id="sep1b" type="separator"/>
+
+			<Field id="deviceId"
+				   type="menu"
+				   defaultValue=""
+				   tooltip="Select the Tempest device to monitor for lightning strikes.">
+				<Label>Tempest Device:</Label>
+				<List class="indigo.devices" filter="self.tempestStation"/>
+			</Field>
+
+			<Field id="sep2" type="separator"/>
+		</ConfigUI>
+	</Event>
+
+	<!-- ============================================================
+	     Rain Start
+	     ============================================================ -->
+	<Event id="rainStart">
+		<Name>Rain Started</Name>
+		<ConfigUI>
+			<Field id="sep0" type="separator"/>
+			<Field id="lbl0" type="label" fontSize="large" fontColor="blue">
+				<Label>Rain Start Trigger</Label>
+			</Field>
+			<Field id="sep1" type="separator"/>
+
+			<Field id="lbl_dev" type="label">
+				<Label>Fire this trigger when the selected Tempest detects the start of rain.</Label>
+			</Field>
+			<Field id="sep1b" type="separator"/>
+
+			<Field id="deviceId"
+				   type="menu"
+				   defaultValue=""
+				   tooltip="Select the Tempest device to monitor for rain start events.">
+				<Label>Tempest Device:</Label>
+				<List class="indigo.devices" filter="self.tempestStation"/>
+			</Field>
+
+			<Field id="sep2" type="separator"/>
+		</ConfigUI>
+	</Event>
+
+	<!-- ============================================================
+	     Rapid Wind Threshold
+	     ============================================================ -->
+	<Event id="rapidWindThreshold">
+		<Name>Rapid Wind Exceeds Threshold</Name>
+		<ConfigUI>
+			<Field id="sep0" type="separator"/>
+			<Field id="lbl0" type="label" fontSize="large" fontColor="blue">
+				<Label>Rapid Wind Threshold Trigger</Label>
+			</Field>
+			<Field id="sep1" type="separator"/>
+
+			<Field id="lbl_dev" type="label">
+				<Label>Fire this trigger when a rapid-wind reading from the selected Tempest meets or exceeds the threshold speed (m/s).</Label>
+			</Field>
+			<Field id="sep1b" type="separator"/>
+
+			<Field id="deviceId"
+				   type="menu"
+				   defaultValue=""
+				   tooltip="Select the Tempest device to monitor for rapid wind events.">
+				<Label>Tempest Device:</Label>
+				<List class="indigo.devices" filter="self.tempestStation"/>
+			</Field>
+
+			<Field id="threshold"
+				   type="textfield"
+				   defaultValue="10.0"
+				   tooltip="Wind speed in m/s. This is always compared in m/s regardless of your Wind Speed unit display setting.">
+				<Label>Threshold (m/s):</Label>
+			</Field>
+			<Field id="lbl_threshold_note" type="label" fontSize="small" fontColor="grey">
+				<Label>Rapid wind events arrive approximately every 3 seconds.</Label>
+			</Field>
+
+			<Field id="sep2" type="separator"/>
+		</ConfigUI>
+	</Event>
+
 </Events>

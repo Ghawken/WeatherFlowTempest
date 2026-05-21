@@ -35,14 +35,82 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 			<Field id="lbl_alt_hdr" type="label">
 				<Label>Optional: Altitude for Sea Level Pressure</Label>
 			</Field>
-			<Field id="altitude" type="textfield" defaultValue="0" tooltip="Station altitude in metres above sea level. Used to calculate sea_level_pressure. Set to 0 to skip.">
+			<Field id="altitude" type="textfield" defaultValue="0" tooltip="Station altitude in metres above sea level. Used to calculate sea_level_pressure, cloud_base, and freezing_level. Set to 0 to skip.">
 				<Label>Altitude (m):</Label>
 			</Field>
 			<Field id="lbl_alt" type="label" fontSize="small" fontColor="grey">
-				<Label>0 = omit sea_level_pressure state</Label>
+				<Label>0 = omit sea_level_pressure, cloud_base, freezing_level states</Label>
 			</Field>
 
 			<Field id="sep4" type="separator"/>
+
+			<Field id="lbl_units" type="label" fontSize="regular">
+				<Label>Measurement Units</Label>
+			</Field>
+			<Field id="lbl_units_note" type="label" fontSize="small" fontColor="grey">
+				<Label>Changes take effect on the next sensor observation. The active unit for each type is also stored as a device state (unit_temperature, unit_pressure, etc.).</Label>
+			</Field>
+			<Field id="sep4b" type="separator"/>
+
+			<Field id="tempUnit"
+				   type="menu"
+				   defaultValue="celsius"
+				   tooltip="Unit for all temperature readings (air, dew point, feels like, etc.).">
+				<Label>Temperature:</Label>
+				<List>
+					<Option value="celsius">Celsius (°C)</Option>
+					<Option value="fahrenheit">Fahrenheit (°F)</Option>
+				</List>
+			</Field>
+
+			<Field id="pressureUnit"
+				   type="menu"
+				   defaultValue="hpa"
+				   tooltip="Unit for station pressure, sea level pressure, and vapour pressure.">
+				<Label>Pressure:</Label>
+				<List>
+					<Option value="hpa">Hectopascal (hPa)</Option>
+					<Option value="mmhg">Millimetres Hg (mmHg)</Option>
+					<Option value="inhg">Inches Hg (inHg)</Option>
+				</List>
+			</Field>
+
+			<Field id="windUnit"
+				   type="menu"
+				   defaultValue="ms"
+				   tooltip="Unit for wind speed, gust, average, and lull.">
+				<Label>Wind Speed:</Label>
+				<List>
+					<Option value="ms">Metres per second (m/s)</Option>
+					<Option value="kmh">Kilometres per hour (km/h)</Option>
+					<Option value="knots">Knots (kn)</Option>
+					<Option value="mph">Miles per hour (mph)</Option>
+				</List>
+			</Field>
+
+			<Field id="rainUnit"
+				   type="menu"
+				   defaultValue="mm"
+				   tooltip="Unit for rain accumulation and rain rate.">
+				<Label>Rainfall:</Label>
+				<List>
+					<Option value="mm">Millimetres (mm)</Option>
+					<Option value="inch">Inches (in)</Option>
+				</List>
+			</Field>
+
+			<Field id="altUnit"
+				   type="menu"
+				   defaultValue="m"
+				   tooltip="Unit for altitude-derived states: cloud base and freezing level.">
+				<Label>Altitude:</Label>
+				<List>
+					<Option value="m">Metres (m)</Option>
+					<Option value="ft">Feet (ft)</Option>
+				</List>
+			</Field>
+
+			<Field id="sep5" type="separator"/>
 		</ConfigUI>
 
 		<States>
@@ -98,6 +166,16 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Sea Level Pressure (mbar)</TriggerLabel>
 				<ControlPageLabel>SLP mbar</ControlPageLabel>
+			</State>
+			<State id="cloud_base">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Cloud Base Altitude</TriggerLabel>
+				<ControlPageLabel>Cloud Base</ControlPageLabel>
+			</State>
+			<State id="freezing_level">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Freezing Level Altitude</TriggerLabel>
+				<ControlPageLabel>Freezing Level</ControlPageLabel>
 			</State>
 			<State id="vapor_pressure">
 				<ValueType>Float</ValueType>
@@ -202,6 +280,11 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				<TriggerLabel>Wind Direction Average (°)</TriggerLabel>
 				<ControlPageLabel>Wind Dir Avg °</ControlPageLabel>
 			</State>
+			<State id="wind_direction_average_cardinal">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Wind Direction Average Cardinal</TriggerLabel>
+				<ControlPageLabel>Wind Dir Avg</ControlPageLabel>
+			</State>
 			<State id="wind_direction_cardinal">
 				<ValueType>String</ValueType>
 				<TriggerLabel>Wind Direction Cardinal</TriggerLabel>
@@ -223,6 +306,28 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				<ValueType>String</ValueType>
 				<TriggerLabel>Power Save Mode</TriggerLabel>
 				<ControlPageLabel>Power Mode</ControlPageLabel>
+			</State>
+
+			<!-- Active unit indicators -->
+			<State id="unit_temperature">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Temperature Unit</TriggerLabel>
+				<ControlPageLabel>Temp Unit</ControlPageLabel>
+			</State>
+			<State id="unit_pressure">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Pressure Unit</TriggerLabel>
+				<ControlPageLabel>Pressure Unit</ControlPageLabel>
+			</State>
+			<State id="unit_wind">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Wind Speed Unit</TriggerLabel>
+				<ControlPageLabel>Wind Unit</ControlPageLabel>
+			</State>
+			<State id="unit_rain">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Rainfall Unit</TriggerLabel>
+				<ControlPageLabel>Rain Unit</ControlPageLabel>
 			</State>
 
 			<!-- Diagnostics -->
