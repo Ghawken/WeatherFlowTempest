@@ -158,6 +158,12 @@ class Plugin(indigo.PluginBase):
                 await self._listener.stop_listening()
             except Exception:
                 pass
+        # Old listener's device objects are dead. Flush stale subscriptions and
+        # the discovered cache so _on_device_discovered re-subscribes to the
+        # fresh device objects the new listener creates.
+        for sn in list(self._unsubs.keys()):
+            self._unsubscribe(sn)
+        self._discovered.clear()
         await self._start_listener()
 
     # -------------------------------------------------------------------------
@@ -219,6 +225,8 @@ class Plugin(indigo.PluginBase):
         self, event_type_id: str, indigo_dev_id: int, **kwargs: Any
     ) -> None:
         for trigger in indigo.triggers.iter("self"):
+            if not trigger.enabled:
+                continue
             if trigger.pluginTypeId != event_type_id:
                 continue
             try:
@@ -235,105 +243,126 @@ class Plugin(indigo.PluginBase):
                 except (ValueError, TypeError):
                     continue
 
-            self.triggerCheck(trigger)
+            indigo.trigger.execute(trigger)
 
     # -------------------------------------------------------------------------
     # Event handlers (called from async thread — Indigo API is thread-safe)
     # -------------------------------------------------------------------------
 
     def _on_load_complete(self, device: WeatherFlowSensorDevice) -> None:
-        self.logger.info(
-            "%s: initial data load complete (firmware=%s)",
-            device.serial_number,
-            device.firmware_revision,
-        )
-        self._on_observation(device)
-        self._on_status_update(device)
+        try:
+            self.logger.info(
+                "%s: initial data load complete (firmware=%s)",
+                device.serial_number,
+                device.firmware_revision,
+            )
+            self._on_observation(device)
+            self._on_status_update(device)
+        except Exception:
+            self.logger.exception("%s: error in load-complete handler", device.serial_number)
 
     def _on_observation(self, device: WeatherFlowSensorDevice) -> None:
-        dev = self._get_indigo_dev(device.serial_number)
-        if dev is None:
-            return
-        altitude_qty = self._get_altitude(dev)
-        unit_prefs = _get_unit_prefs(dev)
-        states = _build_observation_states(device, altitude_qty, unit_prefs)
-        if states:
-            dev.updateStatesOnServer(states)
+        try:
+            dev = self._get_indigo_dev(device.serial_number)
+            if dev is None:
+                return
+            altitude_qty = self._get_altitude(dev)
+            unit_prefs = _get_unit_prefs(dev)
+            states = _build_observation_states(device, altitude_qty, unit_prefs)
+            if states:
+                dev.updateStatesOnServer(states)
+        except Exception:
+            self.logger.exception("%s: error in observation handler", device.serial_number)
 
     def _on_status_update(self, device: WeatherFlowSensorDevice) -> None:
-        dev = self._get_indigo_dev(device.serial_number)
-        if dev is None:
-            return
-        states = _build_status_states(device)
-        if states:
-            dev.updateStatesOnServer(states)
+        try:
+            dev = self._get_indigo_dev(device.serial_number)
+            if dev is None:
+                return
+            states = _build_status_states(device)
+            if states:
+                dev.updateStatesOnServer(states)
+        except Exception:
+            self.logger.exception("%s: error in status-update handler", device.serial_number)
 
     def _on_rapid_wind(self, device: WeatherFlowSensorDevice) -> None:
-        dev = self._get_indigo_dev(device.serial_number)
-        if dev is None:
-            return
-        unit_prefs = _get_unit_prefs(dev)
-        states = _build_wind_states(device, unit_prefs)
-        if states:
-            dev.updateStatesOnServer(states)
-        # Threshold comparison always uses raw m/s magnitude
-        speed_ms = (
-            float(device.wind_speed.magnitude) if device.wind_speed is not None else 0.0
-        )
-        self._check_triggers("rapidWindThreshold", dev.id, speed_ms=speed_ms)
-        self.logger.debug("%s: rapid wind %.2f m/s", device.serial_number, speed_ms)
+        try:
+            dev = self._get_indigo_dev(device.serial_number)
+            if dev is None:
+                return
+            unit_prefs = _get_unit_prefs(dev)
+            states = _build_wind_states(device, unit_prefs)
+            if states:
+                dev.updateStatesOnServer(states)
+            # Threshold comparison always uses raw m/s magnitude
+            speed_ms = (
+                float(device.wind_speed.magnitude) if device.wind_speed is not None else 0.0
+            )
+            self._check_triggers("rapidWindThreshold", dev.id, speed_ms=speed_ms)
+            self.logger.debug("%s: rapid wind %.2f m/s", device.serial_number, speed_ms)
+        except Exception:
+            self.logger.exception("%s: error in rapid-wind handler", device.serial_number)
 
     def _on_strike(self, device: WeatherFlowSensorDevice, event: Any) -> None:
-        dev = self._get_indigo_dev(device.serial_number)
-        if dev is None:
-            return
-        unit_prefs = _get_unit_prefs(dev)
-        states: list[dict] = []
-        if device.lightning_strike_count is not None:
-            states.append(
-                {"key": "lightning_strike_count", "value": device.lightning_strike_count}
-            )
-        _add_u(states, "lightning_strike_average_distance",
-               device.lightning_strike_average_distance, "distance", unit_prefs)
-        if event is not None:
-            _add_u(states, "last_strike_distance", event.distance, "distance", unit_prefs)
-            states.append({"key": "last_strike_energy", "value": int(event.energy)})
-        if states:
-            dev.updateStatesOnServer(states)
-        self._check_triggers("lightningStrike", dev.id)
-        self.logger.debug("%s: lightning strike", device.serial_number)
+        try:
+            dev = self._get_indigo_dev(device.serial_number)
+            if dev is None:
+                return
+            unit_prefs = _get_unit_prefs(dev)
+            states: list[dict] = []
+            if device.lightning_strike_count is not None:
+                states.append(
+                    {"key": "lightning_strike_count", "value": device.lightning_strike_count}
+                )
+            _add_u(states, "lightning_strike_average_distance",
+                   device.lightning_strike_average_distance, "distance", unit_prefs)
+            if event is not None:
+                _add_u(states, "last_strike_distance", event.distance, "distance", unit_prefs)
+                states.append({"key": "last_strike_energy", "value": int(event.energy)})
+            if states:
+                dev.updateStatesOnServer(states)
+            self._check_triggers("lightningStrike", dev.id)
+            self.logger.debug("%s: lightning strike", device.serial_number)
+        except Exception:
+            self.logger.exception("%s: error in strike handler", device.serial_number)
 
     def _on_rain_start(self, device: WeatherFlowSensorDevice, event: Any) -> None:
-        dev = self._get_indigo_dev(device.serial_number)
-        if dev is None:
-            return
-        if event is not None:
-            ts = str(event.timestamp) if event.timestamp else ""
-            dev.updateStateOnServer("last_rain_start", ts)
-        self._check_triggers("rainStart", dev.id)
-        self.logger.debug("%s: rain start", device.serial_number)
+        try:
+            dev = self._get_indigo_dev(device.serial_number)
+            if dev is None:
+                return
+            if event is not None:
+                ts = str(event.timestamp) if event.timestamp else ""
+                dev.updateStateOnServer("last_rain_start", ts)
+            self._check_triggers("rainStart", dev.id)
+            self.logger.debug("%s: rain start", device.serial_number)
+        except Exception:
+            self.logger.exception("%s: error in rain-start handler", device.serial_number)
 
     def _on_hub_status(self, device: HubDevice) -> None:
-        dev = self._get_indigo_dev(device.serial_number)
-        if dev is None:
-            return
-        states: list[dict] = []
-        if device.firmware_revision:
-            states.append({"key": "firmware_revision", "value": str(device.firmware_revision)})
-        _add_int(states, "rssi", device.rssi)
-        if device.up_since:
-            states.append({"key": "up_since", "value": str(device.up_since)})
-        if device.uptime is not None:
-            _add_int(states, "uptime", device.uptime)
-        if device.reset_flags is not None:
-            flag_str = (
-                ", ".join(str(f) for f in device.reset_flags)
-                if device.reset_flags else "none"
-            )
-            states.append({"key": "reset_flags", "value": flag_str})
-        if states:
-            states.append({"key": "deviceStatus", "value": "Active"})
-            dev.updateStatesOnServer(states)
+        try:
+            dev = self._get_indigo_dev(device.serial_number)
+            if dev is None:
+                return
+            states: list[dict] = []
+            if device.firmware_revision:
+                states.append({"key": "firmware_revision", "value": str(device.firmware_revision)})
+            _add_int(states, "rssi", device.rssi)
+            if device.up_since:
+                states.append({"key": "up_since", "value": str(device.up_since)})
+            if device.uptime is not None:
+                _add_int(states, "uptime", device.uptime)
+            if device.reset_flags is not None:
+                flag_str = (
+                    ", ".join(str(f) for f in device.reset_flags)
+                    if device.reset_flags else "none"
+                )
+                states.append({"key": "reset_flags", "value": flag_str})
+            if states:
+                states.append({"key": "deviceStatus", "value": "Active"})
+                dev.updateStatesOnServer(states)
+        except Exception:
+            self.logger.exception("%s: error in hub-status handler", device.serial_number)
 
     # -------------------------------------------------------------------------
     # Helpers
