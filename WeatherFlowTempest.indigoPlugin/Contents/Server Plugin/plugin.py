@@ -262,6 +262,7 @@ class Plugin(indigo.PluginBase):
     def startup(self) -> None:
         self.logger.info("WeatherFlow Tempest: starting")
         _patch_tempest_device()
+        _patch_sky_device()
 
         self._event_loop = asyncio.new_event_loop()
         self._async_thread = threading.Thread(
@@ -509,49 +510,55 @@ class Plugin(indigo.PluginBase):
                           _fmt(device.battery_percent),
                           getattr(device, "power_save_mode", None))
         self.logger.debug("%s:   air_temp=%s  dew_point=%s  wet_bulb=%s",
-                          sn, _fmt(device.air_temperature),
-                          _fmt(device.dew_point_temperature),
-                          _fmt(device.wet_bulb_temperature))
+                          sn, _fmt(getattr(device, "air_temperature", None)),
+                          _fmt(getattr(device, "dew_point_temperature", None)),
+                          _fmt(getattr(device, "wet_bulb_temperature", None)))
         self.logger.debug("%s:   heat_index=%s  delta_t=%s",
-                          sn, _fmt(device.heat_index), _fmt(device.delta_t))
+                          sn, _fmt(getattr(device, "heat_index", None)),
+                          _fmt(getattr(device, "delta_t", None)))
         if isinstance(device, TempestDevice):
             self.logger.debug("%s:   feels_like=%s  wind_chill=%s",
                               sn, _fmt(device.feels_like_temperature),
                               _fmt(device.wind_chill_temperature))
         self.logger.debug("%s:   humidity=%s  station_pressure=%s  vapor_pressure=%s",
-                          sn, _fmt(device.relative_humidity),
-                          _fmt(device.station_pressure),
-                          _fmt(device.vapor_pressure))
-        self.logger.debug("%s:   air_density=%s", sn, _fmt(device.air_density))
+                          sn, _fmt(getattr(device, "relative_humidity", None)),
+                          _fmt(getattr(device, "station_pressure", None)),
+                          _fmt(getattr(device, "vapor_pressure", None)))
+        self.logger.debug("%s:   air_density=%s", sn, _fmt(getattr(device, "air_density", None)))
         if altitude_qty is not None:
-            self.logger.debug("%s:   altitude=%s  sea_level_pressure=%s  cloud_base=%s  freezing_level=%s",
-                              sn, _fmt(altitude_qty),
-                              _fmt(device.calculate_sea_level_pressure(altitude_qty)),
-                              _fmt(device.calculate_cloud_base(altitude_qty)),
-                              _fmt(device.calculate_freezing_level(altitude_qty)))
+            try:
+                self.logger.debug("%s:   altitude=%s  sea_level_pressure=%s  cloud_base=%s  freezing_level=%s",
+                                  sn, _fmt(altitude_qty),
+                                  _fmt(device.calculate_sea_level_pressure(altitude_qty)),
+                                  _fmt(device.calculate_cloud_base(altitude_qty)),
+                                  _fmt(device.calculate_freezing_level(altitude_qty)))
+            except Exception:
+                pass
         self.logger.debug("%s:   illuminance=%s  solar_radiation=%s  uv=%s",
-                          sn, _fmt(device.illuminance),
-                          _fmt(device.solar_radiation),
-                          _fmt(device.uv))
+                          sn, _fmt(getattr(device, "illuminance", None)),
+                          _fmt(getattr(device, "solar_radiation", None)),
+                          _fmt(getattr(device, "uv", None)))
         self.logger.debug("%s:   rain_accum_prev_min=%s  rain_rate=%s  precip_type=%s",
-                          sn, _fmt(device.rain_accumulation_previous_minute),
-                          _fmt(device.rain_rate),
+                          sn, _fmt(getattr(device, "rain_accumulation_previous_minute", None)),
+                          _fmt(getattr(device, "rain_rate", None)),
                           getattr(device, "precipitation_type", None))
         self.logger.debug("%s:   local_daily_rain_accumulation=%s  _raw_idx18=%s",
                           sn,
                           _fmt(getattr(device, "local_daily_rain_accumulation", None)),
                           getattr(device, "_local_daily_rain_accumulation", "NOT SET"))
         self.logger.debug("%s:   wind_speed=%s  wind_avg=%s  wind_gust=%s  wind_lull=%s",
-                          sn, _fmt(device.wind_speed), _fmt(device.wind_average),
-                          _fmt(device.wind_gust), _fmt(device.wind_lull))
+                          sn, _fmt(getattr(device, "wind_speed", None)),
+                          _fmt(getattr(device, "wind_average", None)),
+                          _fmt(getattr(device, "wind_gust", None)),
+                          _fmt(getattr(device, "wind_lull", None)))
         self.logger.debug("%s:   wind_dir=%s  wind_dir_avg=%s  cardinal=%s  cardinal_avg=%s",
-                          sn, _fmt(device.wind_direction),
-                          _fmt(device.wind_direction_average),
-                          device.wind_direction_cardinal,
-                          device.wind_direction_average_cardinal)
+                          sn, _fmt(getattr(device, "wind_direction", None)),
+                          _fmt(getattr(device, "wind_direction_average", None)),
+                          getattr(device, "wind_direction_cardinal", None),
+                          getattr(device, "wind_direction_average_cardinal", None))
         self.logger.debug("%s:   lightning_count=%s  lightning_avg_dist=%s",
-                          sn, device.lightning_strike_count,
-                          _fmt(device.lightning_strike_average_distance))
+                          sn, getattr(device, "lightning_strike_count", None),
+                          _fmt(getattr(device, "lightning_strike_average_distance", None)))
         self.logger.debug("%s:   rssi=%s  hub_rssi=%s  sensor_status_raw=0x%X",
                           sn, device.rssi, device.hub_rssi,
                           getattr(device, "_sensor_status", 0) or 0)
@@ -627,7 +634,7 @@ class Plugin(indigo.PluginBase):
 
             if rain_today_mm is None:
                 # Index 18 absent — accumulate from per-minute values
-                rain_prev_min = device.rain_accumulation_previous_minute
+                rain_prev_min = getattr(device, "rain_accumulation_previous_minute", None)
                 rain_prev_min_mm = (
                     float(rain_prev_min.magnitude)
                     if rain_prev_min is not None and hasattr(rain_prev_min, "magnitude")
@@ -654,13 +661,17 @@ class Plugin(indigo.PluginBase):
             if states:
                 dev.updateStatesOnServer(states)
 
+            _t = getattr(device, "air_temperature", None)
+            _h = getattr(device, "relative_humidity", None)
+            _p = getattr(device, "station_pressure", None)
+            _r = getattr(device, "rain_rate", None)
             self.logger.debug(
                 "%s: observation  temp=%s  humidity=%s  pressure=%s  rain_rate=%s  rain_today=%s mm (%s)",
                 sn,
-                getattr(device.air_temperature, "magnitude", device.air_temperature),
-                getattr(device.relative_humidity, "magnitude", device.relative_humidity),
-                getattr(device.station_pressure, "magnitude", device.station_pressure),
-                getattr(device.rain_rate, "magnitude", device.rain_rate),
+                getattr(_t, "magnitude", _t),
+                getattr(_h, "magnitude", _h),
+                getattr(_p, "magnitude", _p),
+                getattr(_r, "magnitude", _r),
                 f"{rain_today_mm:.2f}" if rain_today_mm is not None else "n/a",
                 rain_source,
             )
@@ -884,6 +895,10 @@ class Plugin(indigo.PluginBase):
                 continue
             if typeId == "hubStation" and not sn.startswith("HB"):
                 continue
+            if typeId == "skyStation" and not sn.startswith("SK"):
+                continue
+            if typeId == "airStation" and not sn.startswith("AR"):
+                continue
             items.append((sn, f"{sn}  ({dev.model})"))
         if not items:
             items.append(("", "── No devices discovered yet ──"))
@@ -917,6 +932,10 @@ class Plugin(indigo.PluginBase):
                 dev_type_id = "tempestStation"
             elif sn.startswith("HB"):
                 dev_type_id = "hubStation"
+            elif sn.startswith("SK"):
+                dev_type_id = "skyStation"
+            elif sn.startswith("AR"):
+                dev_type_id = "airStation"
             else:
                 self.logger.debug("  %s: unknown serial prefix, skipping", sn)
                 continue
@@ -1172,22 +1191,22 @@ def _build_observation_states(
     states: list[dict] = []
 
     # --- Temperature ---
-    _add_u(states, "air_temperature",        device.air_temperature,       "temp",    unit_prefs)
-    _add_u(states, "temperature",            device.air_temperature,       "temp",    unit_prefs)
-    _add_u(states, "dew_point_temperature",  device.dew_point_temperature, "temp",    unit_prefs)
-    _add_u(states, "wet_bulb_temperature",   device.wet_bulb_temperature,  "temp",    unit_prefs)
-    _add_u(states, "heat_index",             device.heat_index,            "temp",    unit_prefs)
-    _add_u(states, "delta_t",               device.delta_t,               "delta_t", unit_prefs)
+    _add_u(states, "air_temperature",        getattr(device, "air_temperature", None),       "temp",    unit_prefs)
+    _add_u(states, "temperature",            getattr(device, "air_temperature", None),       "temp",    unit_prefs)
+    _add_u(states, "dew_point_temperature",  getattr(device, "dew_point_temperature", None), "temp",    unit_prefs)
+    _add_u(states, "wet_bulb_temperature",   getattr(device, "wet_bulb_temperature", None),  "temp",    unit_prefs)
+    _add_u(states, "heat_index",             getattr(device, "heat_index", None),            "temp",    unit_prefs)
+    _add_u(states, "delta_t",               getattr(device, "delta_t", None),               "delta_t", unit_prefs)
 
     if isinstance(device, TempestDevice):
         _add_u(states, "feels_like_temperature", device.feels_like_temperature, "temp", unit_prefs)
         _add_u(states, "wind_chill_temperature", device.wind_chill_temperature, "temp", unit_prefs)
 
     # --- Atmospheric ---
-    _add_u(states, "relative_humidity", device.relative_humidity, "percent",  unit_prefs)
-    _add_u(states, "station_pressure",  device.station_pressure,  "pressure", unit_prefs)
-    _add_u(states, "vapor_pressure",    device.vapor_pressure,    "pressure", unit_prefs)
-    _add_u(states, "air_density",       device.air_density,       "density",  unit_prefs)
+    _add_u(states, "relative_humidity", getattr(device, "relative_humidity", None), "percent",  unit_prefs)
+    _add_u(states, "station_pressure",  getattr(device, "station_pressure", None),  "pressure", unit_prefs)
+    _add_u(states, "vapor_pressure",    getattr(device, "vapor_pressure", None),    "pressure", unit_prefs)
+    _add_u(states, "air_density",       getattr(device, "air_density", None),       "density",  unit_prefs)
 
     if altitude_qty is not None:
         try:
@@ -1207,17 +1226,17 @@ def _build_observation_states(
             pass
 
     # --- Light / UV ---
-    _add_u(states, "illuminance",     device.illuminance,     "lux",        unit_prefs)
-    _add_u(states, "solar_radiation", device.solar_radiation, "irradiance", unit_prefs)
-    _add_u(states, "uv",              device.uv,              "uv",         unit_prefs)
+    _add_u(states, "illuminance",     getattr(device, "illuminance", None),     "lux",        unit_prefs)
+    _add_u(states, "solar_radiation", getattr(device, "solar_radiation", None), "irradiance", unit_prefs)
+    _add_u(states, "uv",              getattr(device, "uv", None),              "uv",         unit_prefs)
 
     # --- Rain ---
     _add_u(states, "rain_accumulation_previous_minute",
-           device.rain_accumulation_previous_minute, "rain", unit_prefs)
-    _add_u(states, "rain_rate", device.rain_rate, "rain_rate", unit_prefs)
+           getattr(device, "rain_accumulation_previous_minute", None), "rain", unit_prefs)
+    _add_u(states, "rain_rate", getattr(device, "rain_rate", None), "rain_rate", unit_prefs)
 
     # Rain intensity label derived from rain_rate (always in mm/h from the library)
-    rate_raw = device.rain_rate
+    rate_raw = getattr(device, "rain_rate", None)
     rate_mm_h = float(rate_raw.magnitude) if rate_raw is not None and hasattr(rate_raw, "magnitude") else (float(rate_raw) if rate_raw is not None else None)
     states.append({"key": "rain_intensity", "value": _rain_intensity(rate_mm_h)})
 
@@ -1234,23 +1253,23 @@ def _build_observation_states(
     if rain_yesterday_mm is not None:
         _add_u(states, "rain_yesterday", rain_yesterday_mm * _UNIT_MM, "rain", unit_prefs)
 
-    if device.precipitation_type is not None:
-        states.append({"key": "precipitation_type",
-                       "value": device.precipitation_type.name.lower()})
+    _precip_type = getattr(device, "precipitation_type", None)
+    if _precip_type is not None:
+        states.append({"key": "precipitation_type", "value": _precip_type.name.lower()})
 
     # --- Lightning ---
-    if device.lightning_strike_count is not None:
-        states.append({"key": "lightning_strike_count",
-                       "value": device.lightning_strike_count})
+    _strike_count = getattr(device, "lightning_strike_count", None)
+    if _strike_count is not None:
+        states.append({"key": "lightning_strike_count", "value": _strike_count})
     _add_u(states, "lightning_strike_average_distance",
-           device.lightning_strike_average_distance, "distance", unit_prefs)
+           getattr(device, "lightning_strike_average_distance", None), "distance", unit_prefs)
 
     # --- Wind ---
     states.extend(_build_wind_states(device, unit_prefs))
-    _add_u(states, "wind_sample_interval", device.wind_sample_interval, "seconds", unit_prefs)
+    _add_u(states, "wind_sample_interval", getattr(device, "wind_sample_interval", None), "seconds", unit_prefs)
 
     # --- Reporting ---
-    _add_u(states, "report_interval", device.report_interval, "minutes", unit_prefs)
+    _add_u(states, "report_interval", getattr(device, "report_interval", None), "minutes", unit_prefs)
 
     # --- Rain Check (WeatherFlow's precipitation analysis / verification status) ---
     rain_check = getattr(device, "rain_check", None)
@@ -1265,8 +1284,9 @@ def _build_observation_states(
     if device.last_report:
         states.append({"key": "last_report", "value": str(device.last_report)})
 
-    if isinstance(device, TempestDevice) and device.power_save_mode is not None:
-        states.append({"key": "power_save_mode", "value": device.power_save_mode.name})
+    _psm = getattr(device, "power_save_mode", None)
+    if _psm is not None:
+        states.append({"key": "power_save_mode", "value": _psm.name})
 
     # --- Unit indicators ---
     states.extend(_build_unit_states(unit_prefs))
@@ -1281,16 +1301,16 @@ def _build_wind_states(
     if unit_prefs is None:
         unit_prefs = {}
     states: list[dict] = []
-    _add_u(states, "wind_speed",             device.wind_speed,             "wind",    unit_prefs)
-    _add_u(states, "wind_average",           device.wind_average,           "wind",    unit_prefs)
-    _add_u(states, "wind_gust",              device.wind_gust,              "wind",    unit_prefs)
-    _add_u(states, "wind_lull",              device.wind_lull,              "wind",    unit_prefs)
-    _add_u(states, "wind_direction",         device.wind_direction,         "degrees", unit_prefs)
-    _add_u(states, "wind_direction_average", device.wind_direction_average, "degrees", unit_prefs)
-    cardinal = device.wind_direction_cardinal
+    _add_u(states, "wind_speed",             getattr(device, "wind_speed", None),             "wind",    unit_prefs)
+    _add_u(states, "wind_average",           getattr(device, "wind_average", None),           "wind",    unit_prefs)
+    _add_u(states, "wind_gust",              getattr(device, "wind_gust", None),              "wind",    unit_prefs)
+    _add_u(states, "wind_lull",              getattr(device, "wind_lull", None),              "wind",    unit_prefs)
+    _add_u(states, "wind_direction",         getattr(device, "wind_direction", None),         "degrees", unit_prefs)
+    _add_u(states, "wind_direction_average", getattr(device, "wind_direction_average", None), "degrees", unit_prefs)
+    cardinal = getattr(device, "wind_direction_cardinal", None)
     if cardinal:
         states.append({"key": "wind_direction_cardinal", "value": cardinal})
-    avg_cardinal = device.wind_direction_average_cardinal
+    avg_cardinal = getattr(device, "wind_direction_average_cardinal", None)
     if avg_cardinal:
         states.append({"key": "wind_direction_average_cardinal", "value": avg_cardinal})
     return states
