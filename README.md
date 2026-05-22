@@ -1,10 +1,68 @@
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/banner.png" width="100%">
+
 # WeatherFlow Tempest Weather Station — Indigo Plugin
 
-Receives live weather data from [WeatherFlow Tempest](https://weatherflow.com/tempest-weather-system/) stations via local UDP broadcast and maps all sensor observations to Indigo device states.
+Receives live weather data from [WeatherFlow Tempest](https://weatherflow.com/tempest-weather-system/) stations via **local UDP broadcast** and maps all sensor observations to Indigo device states. No cloud account or API key is required. Everything runs on your local network.
 
-No cloud account or API key is required. All data comes directly from the hub on your local network.
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
----
+## Screenshot
+
+![WeatherFlow Device States](https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/WeatherFlowStates.png)
+
+*Indigo device states for a Tempest Weather Station showing live sensor readings and unit labels.*
+
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
+
+## Features
+
+| Category | What you get |
+|---|---|
+| **Temperature** | Ambient, feels-like, dew point, wet bulb, wind chill, heat index, delta-T |
+| **Atmospheric** | Station pressure, sea-level pressure, relative humidity, vapour pressure, air density |
+| **Wind** | Instantaneous speed/direction (rapid-wind, ~3 s), 1-minute average, gust, lull, cardinal, sample interval |
+| **Rain** | Per-minute accumulation, rain rate, intensity label, daily total, yesterday's total, Rain Check status |
+| **Lightning** | Strike count, average distance, last-strike distance, energy and timestamp |
+| **Light** | Illuminance (lux), solar radiation (W/m²), UV index |
+| **Battery** | Voltage and percentage; power-save mode label; report interval |
+| **Derived** | Cloud base, freezing level (both require altitude to be set) |
+| **Diagnostics** | RSSI, firmware version, sensor fault flags, silence detection |
+| **Hub** | Firmware, Wi-Fi RSSI, uptime, reset reasons |
+
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
+
+## Navigation
+
+| Page | Contents |
+|---|---|
+| [[Installation]] | Requirements and install steps |
+| [[Plugin-Configuration]] | UDP port, log levels, device auto-generation |
+| [[Tempest-Device-Configuration]] | Unit selection, altitude, device picker |
+| [[Device-States]] | Every state — what it means, units, notes |
+| [[Triggers]] | Lightning, rain-start, and rapid-wind triggers |
+| [[Rain-Data]] | How daily rain is sourced and why power-save mode matters |
+| [[Troubleshooting]] | Common problems and fixes |
+| [[Architecture]] | Internal design: UDP → asyncio → Indigo |
+
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
+
+## Requirements
+
+| Requirement | Version |
+|---|---|
+| Indigo | 2025.2 or later (ServerApiVersion 3.4) |
+| WeatherFlow hub | Any — must be on the same subnet as the Indigo Mac |
+
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
+
+## Quick Start
+
+1. Install the plugin (double-click `WeatherFlowTempest.indigoPlugin`).
+2. Go to **Plugins → WeatherFlow Tempest → Configure → Generate Devices**.
+3. Done — states populate within 60 seconds of the first UDP broadcast.
+
+See [[Installation]] for full details.
+
 
 ## Screenshot
 
