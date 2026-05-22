@@ -120,6 +120,11 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				<TriggerLabel>Air Temperature (°C)</TriggerLabel>
 				<ControlPageLabel>Air Temp °C</ControlPageLabel>
 			</State>
+			<State id="temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Temperature (alias for air_temperature)</TriggerLabel>
+				<ControlPageLabel>Temperature</ControlPageLabel>
+			</State>
 			<State id="dew_point_temperature">
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Dew Point Temperature (°C)</TriggerLabel>
@@ -215,6 +220,31 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Rain Rate (mm/h)</TriggerLabel>
 				<ControlPageLabel>Rain Rate mm/h</ControlPageLabel>
+			</State>
+			<State id="rain_intensity">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Rain Intensity</TriggerLabel>
+				<ControlPageLabel>Rain Intensity</ControlPageLabel>
+			</State>
+			<State id="rain_today">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Today (since local midnight)</TriggerLabel>
+				<ControlPageLabel>Rain Today</ControlPageLabel>
+			</State>
+			<State id="rain_yesterday">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Yesterday</TriggerLabel>
+				<ControlPageLabel>Rain Yesterday</ControlPageLabel>
+			</State>
+			<State id="rain_today_date">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Rain Today Date (YYYY-MM-DD)</TriggerLabel>
+				<ControlPageLabel>Rain Today Date</ControlPageLabel>
+			</State>
+			<State id="rain_today_raw_mm">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Today Raw (mm, internal)</TriggerLabel>
+				<ControlPageLabel>Rain Today mm</ControlPageLabel>
 			</State>
 			<State id="precipitation_type">
 				<ValueType>String</ValueType>

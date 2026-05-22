@@ -12,6 +12,7 @@ directly from async callbacks.
 from __future__ import annotations
 
 import asyncio
+import datetime
 import logging
 import threading
 import time
@@ -39,6 +40,81 @@ from pyweatherflowudp.device import (
     WeatherFlowSensorDevice,
 )
 from pyweatherflowudp.errors import ListenerError
+
+# Pint unit for manual quantity construction (e.g. wrapping a plain float as mm)
+_UNIT_MM = units.mm
+
+
+def _patch_tempest_device() -> None:
+    """Expose obs_st index 18 (local_daily_rain_accumulation) without modifying library files.
+
+    pyweatherflowudp's OBSERVATION_VALUES_MAP stops at index 17. We wrap parse_observation
+    to capture index 18 (local daily rain, resets at hub local midnight). Indices 19/20 are
+    "rain check" corrected variants added in later firmware — used as fallback only.
+
+    The one-time diagnostic log uses an instance attribute (_obs_packet_logged) on the
+    TempestDevice object rather than a closure variable. The closure approach fails because
+    the class persists in sys.modules across plugin reloads, keeping the closure flag True
+    permanently and silencing the log. Instance attributes reset naturally with each new
+    device object that the listener creates on restart.
+    """
+    try:
+        from pyweatherflowudp.device import TempestDevice
+        from pyweatherflowudp.const import UNIT_MILLIMETERS
+        from pyweatherflowudp.helpers import value_as_unit
+
+        if hasattr(TempestDevice, "local_daily_rain_accumulation"):
+            return  # already patched (plugin reload without process restart)
+
+        _orig_parse = TempestDevice.parse_observation
+        _log = logging.getLogger("Plugin.patch_tempest")
+
+        def _parse_observation_extended(self, data: list) -> None:  # type: ignore[override]
+            _orig_parse(self, data)
+            for observation in data:
+                n = len(observation)
+
+                # Log raw packet once per device instance to verify which indices are present.
+                # Stored on the instance so it resets when the listener creates a new device
+                # object, unlike a closure variable which persists across plugin reloads.
+                if not getattr(self, "_obs_packet_logged", False):
+                    self._obs_packet_logged = True
+                    _log.debug(
+                        "obs_st raw packet: len=%d  full=%s", n, observation
+                    )
+                    _log.debug(
+                        "obs_st rain indices: [12]=%s [13]=%s [18]=%s [19]=%s [20]=%s [21]=%s",
+                        observation[12] if n > 12 else "absent",
+                        observation[13] if n > 13 else "absent",
+                        observation[18] if n > 18 else "absent",
+                        observation[19] if n > 19 else "absent",
+                        observation[20] if n > 20 else "absent",
+                        observation[21] if n > 21 else "absent",
+                    )
+
+                # Index 18: local daily rain accumulation (resets at hub local midnight).
+                # Confirmed correct across firmware versions. Indices 19/20 are corrected
+                # rain-check variants present in later firmware — used as fallback only.
+                if n > 18 and observation[18] is not None:
+                    self._local_daily_rain_accumulation = observation[18]
+                elif n > 20 and observation[20] is not None:
+                    self._local_daily_rain_accumulation = observation[20]
+                elif n > 19 and observation[19] is not None:
+                    self._local_daily_rain_accumulation = observation[19]
+
+        TempestDevice.parse_observation = _parse_observation_extended  # type: ignore[method-assign]
+
+        TempestDevice.local_daily_rain_accumulation = property(  # type: ignore[attr-defined]
+            lambda self: value_as_unit(
+                getattr(self, "_local_daily_rain_accumulation", None),
+                UNIT_MILLIMETERS,
+            )
+        )
+        _log.debug("TempestDevice patched: obs_st index 18 → local_daily_rain_accumulation")
+    except Exception as ex:
+        logging.getLogger(__name__).warning(
+            "Could not extend TempestDevice for daily rain: %s", ex
+        )
 
 
 class Plugin(indigo.PluginBase):
@@ -87,6 +163,8 @@ class Plugin(indigo.PluginBase):
         self._unsubs: dict[str, list[Any]] = {}
         # serial_number -> epoch of last silence warning (throttles repeat logs)
         self._silence_warned: dict[str, float] = {}
+        # serial_number -> ISO date of last observation (midnight-rollover detection)
+        self._rain_date: dict[str, str] = {}
 
     # -------------------------------------------------------------------------
     # Plugin lifecycle
@@ -94,6 +172,7 @@ class Plugin(indigo.PluginBase):
 
     def startup(self) -> None:
         self.logger.info("WeatherFlow Tempest: starting")
+        _patch_tempest_device()
 
         self._event_loop = asyncio.new_event_loop()
         self._async_thread = threading.Thread(
@@ -206,6 +285,10 @@ class Plugin(indigo.PluginBase):
                 await self._listener.stop_listening()
             except Exception:
                 pass
+        # Give the event loop time to process the transport.close() callback and
+        # release the OS socket. Without this yield, the port is still bound when
+        # we call create_datagram_endpoint and we get "Address already in use".
+        await asyncio.sleep(2)
         # Old listener's device objects are dead. Flush stale subscriptions and
         # the discovered cache so _on_device_discovered re-subscribes to the
         # fresh device objects the new listener creates.
@@ -306,23 +389,192 @@ class Plugin(indigo.PluginBase):
             )
             self._on_observation(device)
             self._on_status_update(device)
+            self._log_startup_snapshot(device)
         except Exception:
             self.logger.exception("%s: error in load-complete handler", device.serial_number)
 
+    def _log_startup_snapshot(self, device: WeatherFlowSensorDevice) -> None:
+        """Log a full sensor snapshot at DEBUG level for startup diagnostics."""
+        if not self.logger.isEnabledFor(logging.DEBUG):
+            return
+        sn = device.serial_number
+        dev = self._get_indigo_dev(sn)
+        unit_prefs = _get_unit_prefs(dev) if dev else {}
+        altitude_qty = self._get_altitude(dev) if dev else None
+
+        def _fmt(qty) -> str:
+            if qty is None:
+                return "None"
+            mag = qty.magnitude if hasattr(qty, "magnitude") else qty
+            unit = f" {qty.units}" if hasattr(qty, "units") else ""
+            return f"{mag}{unit}"
+
+        self.logger.debug("%s: --- startup snapshot ---", sn)
+        self.logger.debug("%s:   unit prefs: %s", sn, unit_prefs)
+        self.logger.debug("%s:   model=%s  firmware=%s  hub_sn=%s",
+                          sn, device.model, device.firmware_revision, device.hub_sn)
+        self.logger.debug("%s:   up_since=%s  last_report=%s",
+                          sn, device.up_since, device.last_report)
+        self.logger.debug("%s:   battery=%s  battery_percent=%s  power_save_mode=%s",
+                          sn, _fmt(device.battery),
+                          _fmt(device.battery_percent),
+                          getattr(device, "power_save_mode", None))
+        self.logger.debug("%s:   air_temp=%s  dew_point=%s  wet_bulb=%s",
+                          sn, _fmt(device.air_temperature),
+                          _fmt(device.dew_point_temperature),
+                          _fmt(device.wet_bulb_temperature))
+        self.logger.debug("%s:   heat_index=%s  delta_t=%s",
+                          sn, _fmt(device.heat_index), _fmt(device.delta_t))
+        if isinstance(device, TempestDevice):
+            self.logger.debug("%s:   feels_like=%s  wind_chill=%s",
+                              sn, _fmt(device.feels_like_temperature),
+                              _fmt(device.wind_chill_temperature))
+        self.logger.debug("%s:   humidity=%s  station_pressure=%s  vapor_pressure=%s",
+                          sn, _fmt(device.relative_humidity),
+                          _fmt(device.station_pressure),
+                          _fmt(device.vapor_pressure))
+        self.logger.debug("%s:   air_density=%s", sn, _fmt(device.air_density))
+        if altitude_qty is not None:
+            self.logger.debug("%s:   altitude=%s  sea_level_pressure=%s  cloud_base=%s  freezing_level=%s",
+                              sn, _fmt(altitude_qty),
+                              _fmt(device.calculate_sea_level_pressure(altitude_qty)),
+                              _fmt(device.calculate_cloud_base(altitude_qty)),
+                              _fmt(device.calculate_freezing_level(altitude_qty)))
+        self.logger.debug("%s:   illuminance=%s  solar_radiation=%s  uv=%s",
+                          sn, _fmt(device.illuminance),
+                          _fmt(device.solar_radiation),
+                          _fmt(device.uv))
+        self.logger.debug("%s:   rain_accum_prev_min=%s  rain_rate=%s  precip_type=%s",
+                          sn, _fmt(device.rain_accumulation_previous_minute),
+                          _fmt(device.rain_rate),
+                          getattr(device, "precipitation_type", None))
+        self.logger.debug("%s:   local_daily_rain_accumulation=%s  _raw_idx18=%s",
+                          sn,
+                          _fmt(getattr(device, "local_daily_rain_accumulation", None)),
+                          getattr(device, "_local_daily_rain_accumulation", "NOT SET"))
+        self.logger.debug("%s:   wind_speed=%s  wind_avg=%s  wind_gust=%s  wind_lull=%s",
+                          sn, _fmt(device.wind_speed), _fmt(device.wind_average),
+                          _fmt(device.wind_gust), _fmt(device.wind_lull))
+        self.logger.debug("%s:   wind_dir=%s  wind_dir_avg=%s  cardinal=%s  cardinal_avg=%s",
+                          sn, _fmt(device.wind_direction),
+                          _fmt(device.wind_direction_average),
+                          device.wind_direction_cardinal,
+                          device.wind_direction_average_cardinal)
+        self.logger.debug("%s:   lightning_count=%s  lightning_avg_dist=%s",
+                          sn, device.lightning_strike_count,
+                          _fmt(device.lightning_strike_average_distance))
+        self.logger.debug("%s:   rssi=%s  hub_rssi=%s  sensor_status_raw=0x%X",
+                          sn, device.rssi, device.hub_rssi,
+                          getattr(device, "_sensor_status", 0) or 0)
+        # Show the converted states that were actually pushed to Indigo
+        states = _build_observation_states(device, altitude_qty, unit_prefs)
+        self.logger.debug("%s:   converted states pushed to Indigo:", sn)
+        for s in states:
+            self.logger.debug("%s:     %s = %s  (uiValue=%s)",
+                              sn, s["key"], s.get("value"), s.get("uiValue", ""))
+
     def _on_observation(self, device: WeatherFlowSensorDevice) -> None:
         try:
-            dev = self._get_indigo_dev(device.serial_number)
+            sn = device.serial_number
+            dev = self._get_indigo_dev(sn)
             if dev is None:
                 return
-            # If the station was previously flagged as silent, clear it
-            if device.serial_number in self._silence_warned:
-                del self._silence_warned[device.serial_number]
-                self.logger.info("%s: data resumed", device.serial_number)
+
+            # Silence recovery
+            if sn in self._silence_warned:
+                del self._silence_warned[sn]
+                self.logger.info("%s: data resumed", sn)
+
+            # Midnight rollover: capture yesterday's total and reset the accumulator.
+            # Must run before we read rain_today_raw_mm for accumulation below.
+            today_str = datetime.date.today().isoformat()
+            rain_yesterday_mm: float | None = None
+            prev_date = self._rain_date.get(sn)
+            is_new_day = False
+
+            if prev_date is None:
+                # First observation this session — check if the day changed since we last ran
+                stored_date = ""
+                try:
+                    stored_date = str(dev.states.get("rain_today_date", ""))
+                except Exception:
+                    pass
+                if stored_date and stored_date != today_str:
+                    try:
+                        rain_yesterday_mm = float(dev.states.get("rain_today_raw_mm", 0.0) or 0.0)
+                    except Exception:
+                        rain_yesterday_mm = 0.0
+                    is_new_day = True
+                    self.logger.info(
+                        "%s: new day since last run (%s → %s), yesterday rain=%.2f mm",
+                        sn, stored_date, today_str, rain_yesterday_mm,
+                    )
+                self._rain_date[sn] = today_str
+            elif prev_date != today_str:
+                # Day rolled over while the plugin was running
+                try:
+                    rain_yesterday_mm = float(dev.states.get("rain_today_raw_mm", 0.0) or 0.0)
+                except Exception:
+                    rain_yesterday_mm = 0.0
+                is_new_day = True
+                self.logger.info(
+                    "%s: new day (%s → %s), yesterday rain=%.2f mm",
+                    sn, prev_date, today_str, rain_yesterday_mm,
+                )
+                self._rain_date[sn] = today_str
+
+            # Daily rain: prefer the hub's index 18 value (authoritative, resets at local
+            # midnight). In power-save modes (e.g. MODE_2 with low battery) the Tempest
+            # sends shorter obs_st packets (18 elements, indices 0-17 only) that omit index
+            # 18. In that case we fall back to accumulating the per-minute rain_accumulated
+            # values (index 12) ourselves — less precise on restart but correct otherwise.
+            daily_qty = getattr(device, "local_daily_rain_accumulation", None)
+            rain_today_mm: float | None = (
+                float(daily_qty.magnitude)
+                if daily_qty is not None and hasattr(daily_qty, "magnitude")
+                else None
+            )
+            rain_source = "hub"
+
+            if rain_today_mm is None:
+                # Index 18 absent — accumulate from per-minute values
+                rain_prev_min = device.rain_accumulation_previous_minute
+                rain_prev_min_mm = (
+                    float(rain_prev_min.magnitude)
+                    if rain_prev_min is not None and hasattr(rain_prev_min, "magnitude")
+                    else 0.0
+                )
+                if is_new_day:
+                    prior_mm = 0.0
+                else:
+                    try:
+                        prior_mm = float(dev.states.get("rain_today_raw_mm", 0.0) or 0.0)
+                    except Exception:
+                        prior_mm = 0.0
+                rain_today_mm = prior_mm + rain_prev_min_mm
+                rain_source = "accumulated"
+
+            # --- Build and push states ---
             altitude_qty = self._get_altitude(dev)
             unit_prefs = _get_unit_prefs(dev)
-            states = _build_observation_states(device, altitude_qty, unit_prefs)
+            states = _build_observation_states(
+                device, altitude_qty, unit_prefs,
+                rain_today_mm=rain_today_mm,
+                rain_yesterday_mm=rain_yesterday_mm,
+            )
             if states:
                 dev.updateStatesOnServer(states)
+
+            self.logger.debug(
+                "%s: observation  temp=%s  humidity=%s  pressure=%s  rain_rate=%s  rain_today=%s mm (%s)",
+                sn,
+                getattr(device.air_temperature, "magnitude", device.air_temperature),
+                getattr(device.relative_humidity, "magnitude", device.relative_humidity),
+                getattr(device.station_pressure, "magnitude", device.station_pressure),
+                getattr(device.rain_rate, "magnitude", device.rain_rate),
+                f"{rain_today_mm:.2f}" if rain_today_mm is not None else "n/a",
+                rain_source,
+            )
         except Exception:
             self.logger.exception("%s: error in observation handler", device.serial_number)
 
@@ -798,10 +1050,29 @@ def _add_u(
 # State builder functions (module-level, no Plugin instance needed)
 # =============================================================================
 
+def _rain_intensity(rate_mm_h: float | None) -> str:
+    """Return a human-readable rain intensity label from a rate in mm/h."""
+    if rate_mm_h is None:
+        return "None"
+    if rate_mm_h <= 0:
+        return "None"
+    if rate_mm_h < 0.5:
+        return "Very Light"
+    if rate_mm_h < 2.5:
+        return "Light"
+    if rate_mm_h < 10.0:
+        return "Moderate"
+    if rate_mm_h < 50.0:
+        return "Heavy"
+    return "Violent"
+
+
 def _build_observation_states(
     device: WeatherFlowSensorDevice,
     altitude_qty: Any = None,
     unit_prefs: dict | None = None,
+    rain_today_mm: float | None = None,
+    rain_yesterday_mm: float | None = None,
 ) -> list[dict]:
     if unit_prefs is None:
         unit_prefs = {}
@@ -809,6 +1080,7 @@ def _build_observation_states(
 
     # --- Temperature ---
     _add_u(states, "air_temperature",        device.air_temperature,       "temp",    unit_prefs)
+    _add_u(states, "temperature",            device.air_temperature,       "temp",    unit_prefs)
     _add_u(states, "dew_point_temperature",  device.dew_point_temperature, "temp",    unit_prefs)
     _add_u(states, "wet_bulb_temperature",   device.wet_bulb_temperature,  "temp",    unit_prefs)
     _add_u(states, "heat_index",             device.heat_index,            "temp",    unit_prefs)
@@ -850,6 +1122,25 @@ def _build_observation_states(
     _add_u(states, "rain_accumulation_previous_minute",
            device.rain_accumulation_previous_minute, "rain", unit_prefs)
     _add_u(states, "rain_rate", device.rain_rate, "rain_rate", unit_prefs)
+
+    # Rain intensity label derived from rain_rate (always in mm/h from the library)
+    rate_raw = device.rain_rate
+    rate_mm_h = float(rate_raw.magnitude) if rate_raw is not None and hasattr(rate_raw, "magnitude") else (float(rate_raw) if rate_raw is not None else None)
+    states.append({"key": "rain_intensity", "value": _rain_intensity(rate_mm_h)})
+
+    # Today's and yesterday's accumulated rain (tracked in plugin; resets at local midnight)
+    if rain_today_mm is not None:
+        _add_u(states, "rain_today", rain_today_mm * _UNIT_MM, "rain", unit_prefs)
+        # Persist the raw mm value so we can resume correctly after a plugin restart
+        states.append({"key": "rain_today_raw_mm", "value": round(rain_today_mm, 3)})
+
+    # Track the date alongside rain_today so midnight rollover survives restarts
+    states.append({"key": "rain_today_date", "value": datetime.date.today().isoformat()})
+
+    # Yesterday's total (written once on first observation after midnight)
+    if rain_yesterday_mm is not None:
+        _add_u(states, "rain_yesterday", rain_yesterday_mm * _UNIT_MM, "rain", unit_prefs)
+
     if device.precipitation_type is not None:
         states.append({"key": "precipitation_type",
                        "value": device.precipitation_type.name.lower()})
