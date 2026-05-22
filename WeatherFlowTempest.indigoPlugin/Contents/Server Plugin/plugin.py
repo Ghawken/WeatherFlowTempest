@@ -133,6 +133,79 @@ def _patch_tempest_device() -> None:
         )
 
 
+def _patch_sky_device() -> None:
+    """Expose obs_sky extended indices (11, 16) on SkyDevice without modifying library files.
+
+    SkyDevice's OBSERVATION_VALUES_MAP stops at index 13. The obs_sky packet contains:
+      - Index 11: local daily rain accumulation (mm, resets at hub local midnight)
+      - Index 14: rain_accumulated_final (rain-check corrected)
+      - Index 15: daily_rain_accumulation_final (rain-check corrected)
+      - Index 16: precipitation_analysis_type (Rain Check: 0=none, 1=on, 2=off)
+
+    These are the Sky equivalents of the Tempest's indices 18 and 21.
+    """
+    try:
+        from pyweatherflowudp.device import SkyDevice
+        from pyweatherflowudp.const import UNIT_MILLIMETERS
+        from pyweatherflowudp.helpers import value_as_unit
+
+        if hasattr(SkyDevice, "local_daily_rain_accumulation"):
+            return
+
+        _orig_parse = SkyDevice.parse_observation
+        _log = logging.getLogger("Plugin.patch_sky")
+
+        def _parse_sky_extended(self, data: list) -> None:  # type: ignore[override]
+            _orig_parse(self, data)
+            for observation in data:
+                n = len(observation)
+
+                if not getattr(self, "_obs_packet_logged", False):
+                    self._obs_packet_logged = True
+                    _log.debug("obs_sky raw packet: len=%d  full=%s", n, observation)
+                    _log.debug(
+                        "obs_sky extended indices: [11]=%s [14]=%s [15]=%s [16]=%s",
+                        observation[11] if n > 11 else "absent",
+                        observation[14] if n > 14 else "absent",
+                        observation[15] if n > 15 else "absent",
+                        observation[16] if n > 16 else "absent",
+                    )
+
+                # Index 11: daily rain for Sky (same role as index 18 for Tempest).
+                if n > 11 and observation[11] is not None:
+                    self._local_daily_rain_accumulation = observation[11]
+                elif n > 15 and observation[15] is not None:
+                    self._local_daily_rain_accumulation = observation[15]
+                elif n > 14 and observation[14] is not None:
+                    self._local_daily_rain_accumulation = observation[14]
+
+                # Index 16: precipitation analysis type (Rain Check).
+                if n > 16 and observation[16] is not None:
+                    self._precipitation_analysis_type_raw = int(observation[16])
+
+        SkyDevice.parse_observation = _parse_sky_extended  # type: ignore[method-assign]
+
+        SkyDevice.local_daily_rain_accumulation = property(  # type: ignore[attr-defined]
+            lambda self: value_as_unit(
+                getattr(self, "_local_daily_rain_accumulation", None),
+                UNIT_MILLIMETERS,
+            )
+        )
+        SkyDevice.rain_check = property(  # type: ignore[attr-defined]
+            lambda self: _RAIN_CHECK_LABELS.get(
+                getattr(self, "_precipitation_analysis_type_raw", 0), "none"
+            )
+        )
+        _log.debug(
+            "SkyDevice patched: obs_sky index 11 → local_daily_rain_accumulation, "
+            "index 16 → rain_check"
+        )
+    except Exception as ex:
+        logging.getLogger(__name__).warning(
+            "Could not extend SkyDevice for daily rain / rain check: %s", ex
+        )
+
+
 class Plugin(indigo.PluginBase):
     """WeatherFlow Tempest Weather Station plugin."""
 
