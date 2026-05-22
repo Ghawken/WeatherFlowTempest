@@ -278,8 +278,18 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				<TriggerLabel>Last Lightning Strike Energy</TriggerLabel>
 				<ControlPageLabel>Last Strike Energy</ControlPageLabel>
 			</State>
+			<State id="last_strike_time">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last Lightning Strike Time (UTC)</TriggerLabel>
+				<ControlPageLabel>Last Strike Time</ControlPageLabel>
+			</State>
 
 			<!-- Wind -->
+			<State id="wind_sample_interval">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Wind Sample Interval (seconds)</TriggerLabel>
+				<ControlPageLabel>Wind Sample s</ControlPageLabel>
+			</State>
 			<State id="wind_speed">
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Wind Speed (m/s)</TriggerLabel>
@@ -319,6 +329,20 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				<ValueType>String</ValueType>
 				<TriggerLabel>Wind Direction Cardinal</TriggerLabel>
 				<ControlPageLabel>Wind Dir</ControlPageLabel>
+			</State>
+
+			<!-- Reporting -->
+			<State id="report_interval">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Report Interval (minutes)</TriggerLabel>
+				<ControlPageLabel>Report Interval</ControlPageLabel>
+			</State>
+
+			<!-- Rain Check -->
+			<State id="rain_check">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Rain Check Status (WeatherFlow precipitation analysis)</TriggerLabel>
+				<ControlPageLabel>Rain Check</ControlPageLabel>
 			</State>
 
 			<!-- Battery and power -->

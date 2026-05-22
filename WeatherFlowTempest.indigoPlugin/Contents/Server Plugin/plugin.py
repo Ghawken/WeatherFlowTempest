@@ -45,12 +45,17 @@ from pyweatherflowudp.errors import ListenerError
 _UNIT_MM = units.mm
 
 
+_RAIN_CHECK_LABELS: dict[int, str] = {0: "none", 1: "on", 2: "off"}
+
+
 def _patch_tempest_device() -> None:
-    """Expose obs_st index 18 (local_daily_rain_accumulation) without modifying library files.
+    """Expose obs_st extended indices (18, 21) without modifying library files.
 
     pyweatherflowudp's OBSERVATION_VALUES_MAP stops at index 17. We wrap parse_observation
-    to capture index 18 (local daily rain, resets at hub local midnight). Indices 19/20 are
-    "rain check" corrected variants added in later firmware — used as fallback only.
+    to capture:
+      - Index 18: local daily rain accumulation (resets at hub local midnight)
+      - Index 21: precipitation_analysis_type (WeatherFlow Rain Check status: 0=none/1=on/2=off)
+    Indices 19/20 are rain-check corrected rain values — used as daily-rain fallback only.
 
     The one-time diagnostic log uses an instance attribute (_obs_packet_logged) on the
     TempestDevice object rather than a closure variable. The closure approach fails because
@@ -83,9 +88,7 @@ def _patch_tempest_device() -> None:
                         "obs_st raw packet: len=%d  full=%s", n, observation
                     )
                     _log.debug(
-                        "obs_st rain indices: [12]=%s [13]=%s [18]=%s [19]=%s [20]=%s [21]=%s",
-                        observation[12] if n > 12 else "absent",
-                        observation[13] if n > 13 else "absent",
+                        "obs_st extended indices: [18]=%s [19]=%s [20]=%s [21]=%s",
                         observation[18] if n > 18 else "absent",
                         observation[19] if n > 19 else "absent",
                         observation[20] if n > 20 else "absent",
@@ -102,6 +105,11 @@ def _patch_tempest_device() -> None:
                 elif n > 19 and observation[19] is not None:
                     self._local_daily_rain_accumulation = observation[19]
 
+                # Index 21: precipitation analysis type (WeatherFlow Rain Check).
+                # 0 = none (no rain / not configured), 1 = on (verified), 2 = off (opted out).
+                if n > 21 and observation[21] is not None:
+                    self._precipitation_analysis_type_raw = int(observation[21])
+
         TempestDevice.parse_observation = _parse_observation_extended  # type: ignore[method-assign]
 
         TempestDevice.local_daily_rain_accumulation = property(  # type: ignore[attr-defined]
@@ -110,10 +118,18 @@ def _patch_tempest_device() -> None:
                 UNIT_MILLIMETERS,
             )
         )
-        _log.debug("TempestDevice patched: obs_st index 18 → local_daily_rain_accumulation")
+        TempestDevice.rain_check = property(  # type: ignore[attr-defined]
+            lambda self: _RAIN_CHECK_LABELS.get(
+                getattr(self, "_precipitation_analysis_type_raw", 0), "none"
+            )
+        )
+        _log.debug(
+            "TempestDevice patched: obs_st index 18 → local_daily_rain_accumulation, "
+            "index 21 → rain_check"
+        )
     except Exception as ex:
         logging.getLogger(__name__).warning(
-            "Could not extend TempestDevice for daily rain: %s", ex
+            "Could not extend TempestDevice for daily rain / rain check: %s", ex
         )
 
 
@@ -629,6 +645,8 @@ class Plugin(indigo.PluginBase):
             if event is not None:
                 _add_u(states, "last_strike_distance", event.distance, "distance", unit_prefs)
                 states.append({"key": "last_strike_energy", "value": int(event.energy)})
+                if event.timestamp:
+                    states.append({"key": "last_strike_time", "value": str(event.timestamp)})
             if states:
                 dev.updateStatesOnServer(states)
             self._check_triggers("lightningStrike", dev.id)
@@ -943,6 +961,8 @@ _FIXED_SPECS: dict[str, tuple] = {
     "uv":         ("UV",    1),
     "delta_t":    ("Δ°C",   1),   # temperature differential — stays in °C
     "count":      ("",      0),
+    "seconds":    ("s",     0),
+    "minutes":    ("min",   0),
 }
 
 _DEFAULT_UNIT_IDS: dict[str, str] = {
@@ -1154,6 +1174,15 @@ def _build_observation_states(
 
     # --- Wind ---
     states.extend(_build_wind_states(device, unit_prefs))
+    _add_u(states, "wind_sample_interval", device.wind_sample_interval, "seconds", unit_prefs)
+
+    # --- Reporting ---
+    _add_u(states, "report_interval", device.report_interval, "minutes", unit_prefs)
+
+    # --- Rain Check (WeatherFlow's precipitation analysis / verification status) ---
+    rain_check = getattr(device, "rain_check", None)
+    if rain_check is not None:
+        states.append({"key": "rain_check", "value": rain_check})
 
     # --- Battery ---
     _add_u(states, "battery",         device.battery,         "volts",   unit_prefs)
