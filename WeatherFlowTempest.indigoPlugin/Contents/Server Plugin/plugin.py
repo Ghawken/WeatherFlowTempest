@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
+import time
 from typing import Any
 
 import indigo  # type: ignore
@@ -84,6 +85,8 @@ class Plugin(indigo.PluginBase):
         self._serial_to_dev_id: dict[str, int] = {}
         # serial_number -> list of unsubscribe callables
         self._unsubs: dict[str, list[Any]] = {}
+        # serial_number -> epoch of last silence warning (throttles repeat logs)
+        self._silence_warned: dict[str, float] = {}
 
     # -------------------------------------------------------------------------
     # Plugin lifecycle
@@ -109,26 +112,71 @@ class Plugin(indigo.PluginBase):
 
     def shutdown(self) -> None:
         self.logger.info("WeatherFlow Tempest: shutting down")
-        if self._listener and self._event_loop and self._event_loop.is_running():
-            asyncio.run_coroutine_threadsafe(
-                self._listener.stop_listening(), self._event_loop
-            )
-        if self._event_loop and self._event_loop.is_running():
-            self._event_loop.call_soon_threadsafe(self._event_loop.stop)
+        loop = self._event_loop
+        if loop and loop.is_running():
+            # Cancel the UDP socket task directly (synchronous, no coroutine needed)
+            # then stop the loop. Using call_soon_threadsafe avoids any await that
+            # could race with loop.stop() and cause a hang.
+            if self._listener:
+                udp_task = getattr(self._listener, "_udp_task", None)
+                if udp_task and not udp_task.done():
+                    loop.call_soon_threadsafe(udp_task.cancel)
+            loop.call_soon_threadsafe(loop.stop)
 
     def runConcurrentThread(self) -> None:
         try:
             while True:
                 self.sleep(60)
-                if (
-                    self._listener
-                    and not self._listener.is_listening
-                    and self._event_loop
-                ):
-                    self.logger.warning("WeatherFlow listener stopped, restarting")
+                if not self._event_loop:
+                    continue
+
+                # Restart listener if the UDP socket task has crashed
+                udp_task = getattr(self._listener, "_udp_task", None) if self._listener else None
+                listener_dead = (
+                    self._listener is None
+                    or not self._listener.is_listening
+                    or (udp_task is not None and udp_task.done())
+                )
+                if listener_dead:
+                    self.logger.warning("WeatherFlow UDP listener stopped unexpectedly — restarting")
                     asyncio.run_coroutine_threadsafe(
-                        self._start_listener(), self._event_loop
+                        self._restart_listener(), self._event_loop
                     )
+                    continue
+
+                # Heartbeat: detect stations that have gone silent
+                now = time.time()
+                for sn, dev_id in list(self._serial_to_dev_id.items()):
+                    wf_dev = self._discovered.get(sn)
+                    if wf_dev is None:
+                        continue
+                    last = getattr(wf_dev, "_last_report", None)
+                    if not last:
+                        continue
+                    silent_secs = now - last
+                    if silent_secs <= 300:
+                        # Data is flowing — clear any prior silence state
+                        if sn in self._silence_warned:
+                            del self._silence_warned[sn]
+                        continue
+                    # Station has been silent > 5 minutes
+                    silent_mins = int(silent_secs / 60)
+                    last_warned = self._silence_warned.get(sn, 0)
+                    warn_interval = 1800 if last_warned else 0  # first warn immediately, then every 30 min
+                    if (now - last_warned) >= warn_interval:
+                        self._silence_warned[sn] = now
+                        self.logger.warning(
+                            "%s: no observation received for %d minutes",
+                            sn, silent_mins,
+                        )
+                        try:
+                            dev = indigo.devices[dev_id]
+                            dev.updateStateOnServer(
+                                "deviceStatus",
+                                f"No data — last seen {silent_mins} min ago",
+                            )
+                        except Exception:
+                            pass
         except self.StopThread:
             pass
 
@@ -266,6 +314,10 @@ class Plugin(indigo.PluginBase):
             dev = self._get_indigo_dev(device.serial_number)
             if dev is None:
                 return
+            # If the station was previously flagged as silent, clear it
+            if device.serial_number in self._silence_warned:
+                del self._silence_warned[device.serial_number]
+                self.logger.info("%s: data resumed", device.serial_number)
             altitude_qty = self._get_altitude(dev)
             unit_prefs = _get_unit_prefs(dev)
             states = _build_observation_states(device, altitude_qty, unit_prefs)
@@ -279,6 +331,12 @@ class Plugin(indigo.PluginBase):
             dev = self._get_indigo_dev(device.serial_number)
             if dev is None:
                 return
+            self.logger.debug(
+                "%s: sensor_status raw=0x%X decoded=%s",
+                device.serial_number,
+                getattr(device, "_sensor_status", -1),
+                device.sensor_status or "OK",
+            )
             states = _build_status_states(device)
             if states:
                 dev.updateStatesOnServer(states)
@@ -855,10 +913,17 @@ def _build_status_states(device: WeatherFlowSensorDevice) -> list[dict]:
         states.append({"key": "hub_sn", "value": str(device.hub_sn)})
     if device.up_since:
         states.append({"key": "up_since", "value": str(device.up_since)})
-    sensor_status = device.sensor_status
-    if sensor_status is not None:
-        states.append({"key": "sensor_status",
-                       "value": ", ".join(sensor_status) if sensor_status else "OK"})
+    _PRIMARY_SENSOR_MASK = 0x1FF  # bits 0-8: the 9 documented sensor failure flags
+    sensor_status_raw = getattr(device, "_sensor_status", 0) or 0
+    if (sensor_status_raw & _PRIMARY_SENSOR_MASK) == _PRIMARY_SENSOR_MASK:
+        # All 9 primary bits set simultaneously is a firmware artifact (seen in
+        # firmware 181) where the hardware register is read before sensor self-test
+        # completes. The WeatherFlow app shows OK in this case; we match that.
+        states.append({"key": "sensor_status", "value": "OK"})
+    else:
+        ss = device.sensor_status
+        if ss is not None:
+            states.append({"key": "sensor_status", "value": ", ".join(ss) if ss else "OK"})
     return states
 
 
