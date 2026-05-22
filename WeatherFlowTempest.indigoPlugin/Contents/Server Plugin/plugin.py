@@ -881,7 +881,7 @@ class Plugin(indigo.PluginBase):
     def validateDeviceConfigUi(self, valuesDict, typeId, devId):
         errors = indigo.Dict()
         sn = valuesDict.get("serialNumber", "").strip()
-        if not sn:
+        if not sn or sn.startswith("__"):
             errors["serialNumber"] = (
                 "No device selected. Wait for discovery or check hub is on the same network."
             )
@@ -901,7 +901,7 @@ class Plugin(indigo.PluginBase):
                 continue
             items.append((sn, f"{sn}  ({dev.model})"))
         if not items:
-            items.append(("", "── No devices discovered yet ──"))
+            items.append(("__none__", "── No devices discovered yet ──"))
         return items
 
     # -------------------------------------------------------------------------
