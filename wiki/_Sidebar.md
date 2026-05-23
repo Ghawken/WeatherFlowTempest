@@ -13,6 +13,11 @@
 
 ---
 
+**Public Tempest Stations**
+* [Public Tempest Station](https://github.com/Ghawken/WeatherFlowTempest/wiki/Public-Tempest-Station)
+
+---
+
 **Web API**
 * [Web API Setup & Web-only Mode](https://github.com/Ghawken/WeatherFlowTempest/wiki/Web-API)
 
@@ -33,4 +38,5 @@
 
 **Releases**
 * [Changelog](https://github.com/Ghawken/WeatherFlowTempest/wiki/Changelog)
+* [2.5.0](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.0)
 * [2.0.2](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.0.2)

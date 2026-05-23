@@ -4,6 +4,8 @@
 
 Receives live weather data from [WeatherFlow Tempest](https://weatherflow.com/tempest-weather-system/) stations via **local UDP broadcast** and maps all sensor observations to Indigo device states. No cloud account is required for basic operation. An optional **WeatherFlow Web API** token unlocks authoritative rain totals, rain duration, conditions text, hourly lightning counts, and a **web-only mode** that works even when the hub is on a different network.
 
+New in v2.5.0: **Public Tempest Station** — monitor any publicly-shared WeatherFlow station without an account or token. Add as many as you like to build a network of weather reference points around your Indigo location, each with precise distance and direction states.
+
 See Wiki: https://github.com/Ghawken/WeatherFlowTempest/wiki
 
 <img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
@@ -33,6 +35,7 @@ See Wiki: https://github.com/Ghawken/WeatherFlowTempest/wiki
 | **Derived** | Cloud base, freezing level (both require altitude to be set) |
 | **Diagnostics** | RSSI, firmware version, sensor fault flags, silence detection |
 | **Hub** | Firmware, Wi-Fi RSSI, uptime, reset reasons |
+| **Public Stations** | Monitor any public tempestwx.com station — full weather dataset plus distance and bearing from your Indigo server |
 
 <img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
@@ -44,6 +47,7 @@ See Wiki: https://github.com/Ghawken/WeatherFlowTempest/wiki
 | [Plugin Configuration](https://github.com/Ghawken/WeatherFlowTempest/wiki/Plugin-Configuration) | UDP port, Web API token, log levels, device auto-generation |
 | [Web API](https://github.com/Ghawken/WeatherFlowTempest/wiki/Web-API) | Web API setup, web-only mode, extra states |
 | [Tempest Device Configuration](https://github.com/Ghawken/WeatherFlowTempest/wiki/Tempest-Device-Configuration) | Unit selection, altitude, device picker, web-only mode |
+| [Public Tempest Station](https://github.com/Ghawken/WeatherFlowTempest/wiki/Public-Tempest-Station) | Monitor public stations, distance and direction states, building a weather network |
 | [Device States](https://github.com/Ghawken/WeatherFlowTempest/wiki/Device-States) | Every state — what it means, units, notes |
 | [Triggers](https://github.com/Ghawken/WeatherFlowTempest/wiki/Triggers) | Lightning, rain-start, and rapid-wind triggers |
 | [Rain Data](https://github.com/Ghawken/WeatherFlowTempest/wiki/Rain-Data) | How daily rain is sourced and why power-save mode matters |
@@ -111,7 +115,7 @@ The web API is polled every **5 minutes** when UDP data is active (slow-changing
 
 > **Getting a token:** Log in to [tempestwx.com](https://tempestwx.com), go to **Settings → Data Authorizations**, and generate a Personal Use Token. It is free and tied to your WeatherFlow account.
 
-> **Note:** The WeatherFlow REST API authenticates by account — it only serves stations registered to the token's owner. There is no unauthenticated public access through the REST API.
+> **Note:** The personal Web API authenticates by account — it only serves stations registered to the token's owner. To monitor other people's public stations, use the **Public Tempest Station** device type instead — no token required.
 
 ### Debugging Options
 
@@ -172,6 +176,50 @@ When web-only is ticked, one additional field appears:
 The Web API must be enabled and a valid token entered in Plugin Preferences. The device is polled every 60 seconds and all sensor states (temperature, pressure, wind, rain, UV, lightning, conditions) are populated from the web. The `deviceStatus` state shows **Active (web)** when data is flowing.
 
 > **Station ID:** Open the WeatherFlow app, tap your station name, then tap **Settings**. The station ID is the number shown in the Station Information section.
+
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
+
+## Public Tempest Station
+
+The **Public Tempest Station** device type lets you monitor any publicly-shared WeatherFlow station on [tempestwx.com](https://tempestwx.com) — no personal API token and no WeatherFlow account required.
+
+### Setup
+
+1. Go to **Devices → New Device → WeatherFlow Tempest Weather Station**.
+2. Choose **Public Tempest Station**.
+3. Enter the station ID from its tempestwx.com URL (e.g. `tempestwx.com/station/130809/` → `130809`).
+4. Select your preferred units and click **Save**.
+
+The device polls every **120 seconds** and populates a full weather dataset including temperature, wind, rain, lightning, UV, and pressure — identical in breadth to a locally-connected Tempest.
+
+![Public Tempest Station Configuration](https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/configPublic.png)
+
+### Distance and Direction States
+
+Each device automatically calculates the station's position relative to your Indigo server (requires latitude and longitude set in **Indigo → Preferences → Location**):
+
+| State | Example | Description |
+|---|---|---|
+| `distance_km` | `14.32` | Distance in kilometres |
+| `distance_mi` | `8.90` | Distance in miles |
+| `bearing` | `22.5` | Bearing from Indigo to station in degrees (0 = North, clockwise) |
+| `bearing_cardinal` | `NNE` | 16-point compass — N, NNE, NE, ENE, E, ESE, SE, SSE, S, SSW, SW, WSW, W, WNW, NW, NNW |
+| `distance_description` | `14.3 km NNE` | Human-readable combined label; auto-scales to metres / feet at short range |
+
+The bearing is measured **from your Indigo server toward the station** — `NNE` means the station lies to your north-north-east. The `distance_description` state can be placed directly in Control Pages or notification messages.
+
+![Public Tempest Station States](https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/publicStates.png)
+
+### Building a Weather Network
+
+You can add as many Public Tempest Station devices as you like — there is no limit. Each polls independently on its own 120-second cycle. Common uses:
+
+- **Monitor upwind stations** to anticipate incoming rain or wind changes before they reach your location
+- **Compare microclimates** — coastal vs. inland, valley vs. ridge, urban vs. rural
+- **Track lightning at distance** using the `lightning_count_last_1hr` and `lightning_count_last_3hr` states across multiple stations to gauge storm approach direction
+- **Rich Control Pages** — display a ring of surrounding stations each labelled by their `distance_description`
+
+> See the [Public Tempest Station wiki page](https://github.com/Ghawken/WeatherFlowTempest/wiki/Public-Tempest-Station) for the full state reference, failure handling, and detailed examples.
 
 <img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
@@ -298,6 +346,30 @@ The Web API must be enabled and a valid token entered in Plugin Preferences. The
 | `uptime` | Seconds since last boot |
 | `reset_flags` | Reason(s) for the last reset (comma-separated) |
 | `deviceStatus` | Connection status |
+
+---
+
+### Public Tempest Station
+
+#### Distance and Direction
+| State | Description |
+|---|---|
+| `distance_km` | Distance from Indigo server to station (km) |
+| `distance_mi` | Distance from Indigo server to station (miles) |
+| `bearing` | Bearing from Indigo to station (degrees, 0 = North) |
+| `bearing_cardinal` | Cardinal abbreviation: N, NNE, NE, ENE … NNW |
+| `distance_description` | Human-readable combined label, e.g. `14.3 km NNE` |
+
+#### Station Identity
+| State | Description |
+|---|---|
+| `station_name` | Station display name |
+| `latitude` | Station latitude |
+| `longitude` | Station longitude |
+| `elevation` | Station elevation (metres) |
+
+#### Weather States
+All temperature, atmospheric, light, wind, rain, and lightning states mirror the Tempest Weather Station state set above. Rain totals are rain-check corrected. Full details on the [Public Tempest Station wiki page](https://github.com/Ghawken/WeatherFlowTempest/wiki/Public-Tempest-Station).
 
 <img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 

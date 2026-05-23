@@ -15,6 +15,7 @@ import asyncio
 import datetime
 import json
 import logging
+import math
 import threading
 import time
 import urllib.request
@@ -47,6 +48,20 @@ from pyweatherflowudp.errors import ListenerError
 _UNIT_MM = units.mm
 
 _WEB_API_BASE = "https://swd.weatherflow.com/swd/rest"
+_PUBLIC_API_KEY = "6bff2f89-84ab-463c-886e-fc0f443da4cf"
+_PUBLIC_HEADERS = {
+    "Origin":     "https://tempestwx.com",
+    "Referer":    "https://tempestwx.com/",
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    ),
+}
+# Mappings from pluginProp unit values → WeatherFlow API query parameter values
+_UNIT_PREFS_TO_API_TEMP     = {"celsius": "c",     "fahrenheit": "f"}
+_UNIT_PREFS_TO_API_WIND     = {"ms": "ms",         "kmh": "kph",  "knots": "kts", "mph": "mph"}
+_UNIT_PREFS_TO_API_PRESSURE = {"hpa": "hpa",       "mmhg": "mmhg",  "inhg": "inhg"}
+_UNIT_PREFS_TO_API_RAIN     = {"mm": "mm",         "inch": "in"}
 
 _RAIN_CHECK_LABELS: dict[int, str] = {0: "none", 1: "on", 2: "off"}
 
@@ -272,6 +287,9 @@ class Plugin(indigo.PluginBase):
         self._web_poll_task: asyncio.Task | None = None
         # station_id -> consecutive poll failure count (resets on success; suspends at 3)
         self._station_fail_count: dict[int, int] = {}
+        # Public station poller (separate task, no personal token)
+        self._public_poll_task: asyncio.Task | None = None
+        self._public_fail_count: dict[int, int] = {}
 
     # -------------------------------------------------------------------------
     # Plugin lifecycle
@@ -298,6 +316,7 @@ class Plugin(indigo.PluginBase):
 
         asyncio.run_coroutine_threadsafe(self._start_listener(), self._event_loop)
         self._start_web_poller()
+        self._start_public_poller()
 
     def shutdown(self) -> None:
         self.logger.info("WeatherFlow Tempest: shutting down")
@@ -312,6 +331,8 @@ class Plugin(indigo.PluginBase):
                     loop.call_soon_threadsafe(udp_task.cancel)
             if self._web_poll_task and not self._web_poll_task.done():
                 loop.call_soon_threadsafe(self._web_poll_task.cancel)
+            if self._public_poll_task and not self._public_poll_task.done():
+                loop.call_soon_threadsafe(self._public_poll_task.cancel)
             loop.call_soon_threadsafe(loop.stop)
 
     def runConcurrentThread(self) -> None:
@@ -343,6 +364,16 @@ class Plugin(indigo.PluginBase):
                 ):
                     self.logger.warning("WeatherFlow web API poller stopped — restarting")
                     self._start_web_poller()
+
+                # Restart public poller if it crashed and public devices exist
+                if self._public_poll_task is not None and self._public_poll_task.done():
+                    has_public = any(
+                        d.deviceTypeId == "publicTempestStation"
+                        for d in indigo.devices.iter("self")
+                    )
+                    if has_public:
+                        self.logger.warning("WeatherFlow public station poller stopped — restarting")
+                        self._start_public_poller()
 
                 # Heartbeat: detect stations that have gone silent
                 now = time.time()
@@ -845,6 +876,19 @@ class Plugin(indigo.PluginBase):
         # in plugin updates without requiring the user to delete/recreate devices.
         device.stateListOrDisplayStateIdChanged()
 
+        # Public station: polls the WeatherFlow public API, no personal token needed.
+        if device.deviceTypeId == "publicTempestStation":
+            station_id_str = device.pluginProps.get("stationId", "").strip()
+            if not station_id_str or not station_id_str.isdigit():
+                self.logger.warning("%s: public station requires a numeric station ID", device.name)
+                return
+            station_id = int(station_id_str)
+            self._public_fail_count.pop(station_id, None)  # reset any prior suspension
+            device.updateStateOnServer("deviceStatus", "Waiting for data")
+            self.logger.info("%s: public station comm started, station_id=%d", device.name, station_id)
+            self._start_public_poller()
+            return
+
         # Web-only mode: station ID entered manually; no UDP discovery.
         # The web poller iterates Indigo devices directly and populates all states.
         if device.pluginProps.get("webOnly", False):
@@ -891,6 +935,9 @@ class Plugin(indigo.PluginBase):
                 self._on_hub_status(wf_dev)
 
     def deviceStopComm(self, device) -> None:
+        if device.deviceTypeId == "publicTempestStation":
+            self.logger.info("%s: public station comm stopped", device.name)
+            return
         if not device.pluginProps.get("webOnly", False):
             sn = device.pluginProps.get("serialNumber", "").strip()
             if sn:
@@ -942,7 +989,16 @@ class Plugin(indigo.PluginBase):
 
     def validateDeviceConfigUi(self, valuesDict, typeId, devId):
         errors = indigo.Dict()
-        if valuesDict.get("webOnly", False):
+        if typeId == "publicTempestStation":
+            station_id = valuesDict.get("stationId", "").strip()
+            if not station_id:
+                errors["stationId"] = (
+                    "Enter the station ID from the tempestwx.com URL "
+                    "(e.g. tempestwx.com/station/130809/ → 130809)"
+                )
+            elif not station_id.isdigit():
+                errors["stationId"] = "Station ID must be a number (e.g. 130809)"
+        elif valuesDict.get("webOnly", False):
             station_id = valuesDict.get("stationId", "").strip()
             if not station_id:
                 errors["stationId"] = (
@@ -1267,6 +1323,117 @@ class Plugin(indigo.PluginBase):
         except Exception as ex:
             return None, str(ex)
 
+    # -------------------------------------------------------------------------
+    # Public station poller (no personal token — uses system-wide public API key)
+    # -------------------------------------------------------------------------
+
+    def _start_public_poller(self) -> None:
+        """Start the public station poll task if not already running."""
+        loop = self._event_loop
+        if not loop or not loop.is_running():
+            return
+        if self._public_poll_task and not self._public_poll_task.done():
+            return  # already running
+        def _schedule():
+            self._public_poll_task = loop.create_task(self._public_poll_loop())
+        loop.call_soon_threadsafe(_schedule)
+        self.logger.info("WeatherFlow public station poller started")
+
+    async def _public_poll_loop(self) -> None:
+        """Poll all publicTempestStation devices every 120 seconds."""
+        await asyncio.sleep(15)  # brief startup delay
+        while True:
+            try:
+                await self._public_poll_all()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                self.logger.exception("WeatherFlow public station poller: unexpected error")
+            await asyncio.sleep(120)
+
+    async def _public_poll_all(self) -> None:
+        _SUSPEND_AFTER = 3
+        for dev in indigo.devices.iter("self"):
+            if dev.deviceTypeId != "publicTempestStation":
+                continue
+            station_id_str = dev.pluginProps.get("stationId", "").strip()
+            if not station_id_str or not station_id_str.isdigit():
+                continue
+            station_id = int(station_id_str)
+            fail_count = self._public_fail_count.get(station_id, 0)
+            if fail_count >= _SUSPEND_AFTER:
+                continue
+            unit_prefs = _get_unit_prefs(dev)
+            unit_prefs["distUnit"] = dev.pluginProps.get("distUnit", "km")
+            try:
+                data, err = await self._fetch_public_station_obs(station_id, unit_prefs)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                self.logger.exception("Public station %d: unexpected error", station_id)
+                continue
+            if data is not None:
+                if fail_count:
+                    self._public_fail_count[station_id] = 0
+                self._on_public_obs(dev.id, data, unit_prefs)
+            else:
+                new_count = fail_count + 1
+                self._public_fail_count[station_id] = new_count
+                if new_count < _SUSPEND_AFTER:
+                    self.logger.warning(
+                        "%s: public station %d poll error — %s", dev.name, station_id, err
+                    )
+                else:
+                    self.logger.warning(
+                        "%s: public station %d suspended after %d consecutive failures (%s). "
+                        "Edit the device to reset.",
+                        dev.name, station_id, _SUSPEND_AFTER, err,
+                    )
+
+    async def _fetch_public_station_obs(
+        self, station_id: int, unit_prefs: dict
+    ) -> tuple[dict | None, str | None]:
+        """Fetch observations for a public station using the system API key."""
+        temp_p  = _UNIT_PREFS_TO_API_TEMP.get(unit_prefs.get("temp", "celsius"), "c")
+        wind_p  = _UNIT_PREFS_TO_API_WIND.get(unit_prefs.get("wind", "ms"), "ms")
+        press_p = _UNIT_PREFS_TO_API_PRESSURE.get(unit_prefs.get("pressure", "hpa"), "hpa")
+        rain_p  = _UNIT_PREFS_TO_API_RAIN.get(unit_prefs.get("rain", "mm"), "mm")
+        url = (
+            f"{_WEB_API_BASE}/observations/station/{station_id}"
+            f"?api_key={_PUBLIC_API_KEY}"
+            f"&units_temp={temp_p}&units_wind={wind_p}"
+            f"&units_pressure={press_p}&units_precip={rain_p}&units_distance=km"
+        )
+        loop = asyncio.get_running_loop()
+        try:
+            def _do_fetch():
+                req = urllib.request.Request(url, headers=_PUBLIC_HEADERS)
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    return json.loads(resp.read().decode("utf-8"))
+            data = await loop.run_in_executor(None, _do_fetch)
+        except Exception as ex:
+            return None, str(ex)
+        status = data.get("status", {})
+        if status.get("status_code", -1) != 0:
+            return None, status.get("status_message", "unknown API error")
+        return data, None
+
+    def _on_public_obs(self, dev_id: int, data: dict, unit_prefs: dict) -> None:
+        dev = indigo.devices.get(dev_id)
+        if dev is None:
+            return
+        try:
+            ll = indigo.server.getLatitudeAndLongitude()
+            indigo_lat: float | None = float(ll[0]) if ll[0] is not None else None
+            indigo_lon: float | None = float(ll[1]) if ll[1] is not None else None
+        except Exception:
+            indigo_lat, indigo_lon = None, None
+        states = _build_public_obs_states(data, unit_prefs, indigo_lat, indigo_lon)
+        if not states:
+            return
+        self.logger.debug("%s: public obs — %d states updated", dev.name, len(states))
+        dev.updateStatesOnServer(states)
+
     def _on_web_obs(self, dev_id: int, obs: dict) -> None:
         """Apply a web API current_conditions dict to the matching Indigo device.
 
@@ -1311,6 +1478,200 @@ class Plugin(indigo.PluginBase):
                 self.logger.debug("%s:   %-38s %r → %r", label, key, current, new_val)
 
         dev.updateStatesOnServer(states)
+
+
+# =============================================================================
+# Public station helpers
+# =============================================================================
+
+def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Return great-circle distance in km between two lat/lon points."""
+    R = 6371.0
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlam = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
+    return 2 * R * math.asin(math.sqrt(a))
+
+
+def _bearing_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Return initial bearing (0–360°) from point 1 to point 2."""
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dlam = math.radians(lon2 - lon1)
+    x = math.sin(dlam) * math.cos(phi2)
+    y = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(dlam)
+    return (math.degrees(math.atan2(x, y)) + 360) % 360
+
+
+def _distance_description(dist_km: float, bearing_deg: float, use_miles: bool = False) -> str:
+    """Return a human-readable distance string like '1.5 km North' or '600 m NE'."""
+    cardinal = _degrees_to_cardinal(bearing_deg)
+    if use_miles:
+        dist_mi = dist_km * 0.621371
+        if dist_mi < 0.1:
+            return f"{int(dist_mi * 5280)} ft {cardinal}"
+        return f"{dist_mi:.1f} mi {cardinal}"
+    if dist_km < 1.0:
+        return f"{int(round(dist_km * 1000))} m {cardinal}"
+    return f"{dist_km:.1f} km {cardinal}"
+
+
+def _pub_state(
+    states: list[dict], key: str, value: object, dp: int, sym: str = ""
+) -> None:
+    """Append a pre-converted state (value already in user's units)."""
+    if value is None:
+        return
+    try:
+        v = round(float(value), dp)  # type: ignore[arg-type]
+        entry: dict = {"key": key, "value": v, "decimalPlaces": dp}
+        if sym:
+            entry["uiValue"] = f"{v} {sym}"
+        states.append(entry)
+    except (TypeError, ValueError):
+        pass
+
+
+def _build_public_obs_states(
+    data: dict,
+    unit_prefs: dict,
+    indigo_lat: float | None,
+    indigo_lon: float | None,
+) -> list[dict]:
+    """Build Indigo state list from a WeatherFlow public observations/station response.
+
+    Values are already in the user's requested units (passed as API query params),
+    so no Pint conversion is needed — just format and label.
+    """
+    states: list[dict] = []
+    obs_list = data.get("obs", [])
+    obs: dict = obs_list[0] if obs_list else {}
+
+    # --- Station identity ---
+    states.append({"key": "station_name", "value": str(data.get("station_name", ""))})
+    lat = data.get("latitude")
+    lon = data.get("longitude")
+    elev = data.get("elevation")
+    if lat is not None:
+        states.append({"key": "latitude",  "value": round(float(lat), 6)})
+    if lon is not None:
+        states.append({"key": "longitude", "value": round(float(lon), 6)})
+    if elev is not None:
+        _pub_state(states, "elevation", float(elev), 1, "m")
+
+    # --- Distance from Indigo server ---
+    if lat is not None and lon is not None and indigo_lat is not None and indigo_lon is not None:
+        slat, slon = float(lat), float(lon)
+        dist_km = _haversine(indigo_lat, indigo_lon, slat, slon)
+        brg = _bearing_deg(indigo_lat, indigo_lon, slat, slon)
+        cardinal = _degrees_to_cardinal(brg)
+        dist_mi = dist_km * 0.621371
+        use_miles = unit_prefs.get("distUnit", "km") == "mi"
+        desc = _distance_description(dist_km, brg, use_miles)
+        states.append({"key": "distance_km",
+                        "value": round(dist_km, 2), "decimalPlaces": 2,
+                        "uiValue": f"{dist_km:.2f} km"})
+        states.append({"key": "distance_mi",
+                        "value": round(dist_mi, 2), "decimalPlaces": 2,
+                        "uiValue": f"{dist_mi:.2f} mi"})
+        states.append({"key": "bearing",
+                        "value": round(brg, 1), "decimalPlaces": 1,
+                        "uiValue": f"{brg:.1f}°"})
+        states.append({"key": "bearing_cardinal",     "value": cardinal})
+        states.append({"key": "distance_description", "value": desc})
+
+    # --- Unit display symbols ---
+    t_sym  = _UNIT_DISPLAY.get(unit_prefs.get("temp",     "celsius"), "°C")
+    p_sym  = _UNIT_DISPLAY.get(unit_prefs.get("pressure", "hpa"),     "hPa")
+    p_dp   = 2 if unit_prefs.get("pressure") == "inhg" else 1
+    w_sym  = _UNIT_DISPLAY.get(unit_prefs.get("wind",     "ms"),      "m/s")
+    r_sym  = _UNIT_DISPLAY.get(unit_prefs.get("rain",     "mm"),      "mm")
+    r_dp   = 3 if unit_prefs.get("rain") == "inch" else 2
+
+    # --- Temperature ---
+    _pub_state(states, "air_temperature",        obs.get("air_temperature"),      1, t_sym)
+    _pub_state(states, "dew_point_temperature",  obs.get("dew_point"),            1, t_sym)
+    _pub_state(states, "wet_bulb_temperature",   obs.get("wet_bulb_temperature"), 1, t_sym)
+    _pub_state(states, "feels_like_temperature", obs.get("feels_like"),           1, t_sym)
+    _pub_state(states, "heat_index",             obs.get("heat_index"),           1, t_sym)
+    _pub_state(states, "wind_chill_temperature", obs.get("wind_chill"),           1, t_sym)
+    _pub_state(states, "delta_t",                obs.get("delta_t"),              1, "Δ°C")
+    _pub_state(states, "air_density",            obs.get("air_density"),          3, "kg/m³")
+
+    # --- Atmospheric ---
+    rh = obs.get("relative_humidity")
+    if rh is not None:
+        rh_i = int(round(float(rh)))
+        states.append({"key": "relative_humidity", "value": rh_i, "uiValue": f"{rh_i} %"})
+    _pub_state(states, "station_pressure",   obs.get("station_pressure"),   p_dp, p_sym)
+    _pub_state(states, "sea_level_pressure", obs.get("sea_level_pressure"), p_dp, p_sym)
+    pt = obs.get("pressure_trend")
+    if pt is not None:
+        states.append({"key": "pressure_trend", "value": str(pt)})
+
+    # --- Light / UV ---
+    solar = obs.get("solar_radiation")
+    if solar is not None:
+        solar_i = int(round(float(solar)))
+        states.append({"key": "solar_radiation", "value": solar_i, "uiValue": f"{solar_i} W/m²"})
+    brt = obs.get("brightness")
+    if brt is not None:
+        brt_i = int(round(float(brt)))
+        states.append({"key": "illuminance", "value": brt_i, "uiValue": f"{brt_i} lx"})
+    _pub_state(states, "uv", obs.get("uv"), 1, "UV")
+
+    # --- Wind ---
+    _pub_state(states, "wind_average", obs.get("wind_avg"),  1, w_sym)
+    _pub_state(states, "wind_speed",   obs.get("wind_avg"),  1, w_sym)
+    _pub_state(states, "wind_gust",    obs.get("wind_gust"), 1, w_sym)
+    _pub_state(states, "wind_lull",    obs.get("wind_lull"), 1, w_sym)
+    wd = obs.get("wind_direction")
+    if wd is not None:
+        wd_f = float(wd)
+        states.append({"key": "wind_direction",
+                        "value": round(wd_f, 1), "decimalPlaces": 1, "uiValue": f"{wd_f:.1f}°"})
+        states.append({"key": "wind_direction_average",
+                        "value": round(wd_f, 1), "decimalPlaces": 1, "uiValue": f"{wd_f:.1f}°"})
+        card = _degrees_to_cardinal(wd_f)
+        states.append({"key": "wind_direction_cardinal",         "value": card})
+        states.append({"key": "wind_direction_average_cardinal", "value": card})
+
+    # --- Rain ---
+    _pub_state(states, "rain_today",     obs.get("precip_accum_local_day"),       r_dp, r_sym)
+    _pub_state(states, "rain_yesterday", obs.get("precip_accum_local_yesterday"), r_dp, r_sym)
+    _pub_state(states, "rain_last_1hr",  obs.get("precip_accum_last_1hr"),        r_dp, r_sym)
+    rd_today = obs.get("precip_minutes_local_day")
+    if rd_today is not None:
+        states.append({"key": "rain_duration_today",     "value": int(rd_today)})
+    rd_yesterday = obs.get("precip_minutes_local_yesterday")
+    if rd_yesterday is not None:
+        states.append({"key": "rain_duration_yesterday", "value": int(rd_yesterday)})
+
+    # --- Lightning ---
+    lc = obs.get("lightning_strike_count")
+    if lc is not None:
+        states.append({"key": "lightning_strike_count", "value": int(lc)})
+    lc1 = obs.get("lightning_strike_count_last_1hr")
+    if lc1 is not None:
+        states.append({"key": "lightning_count_last_1hr", "value": int(lc1)})
+    lc3 = obs.get("lightning_strike_count_last_3hr")
+    if lc3 is not None:
+        states.append({"key": "lightning_count_last_3hr", "value": int(lc3)})
+    _pub_state(states, "last_strike_distance", obs.get("lightning_strike_last_distance"), 1, "km")
+
+    # --- Timestamp ---
+    ts = obs.get("timestamp")
+    if ts is not None:
+        try:
+            dt_str = datetime.datetime.fromtimestamp(int(ts)).strftime("%Y-%m-%d %H:%M:%S")
+            states.append({"key": "last_updated", "value": dt_str})
+        except Exception:
+            pass
+
+    # --- Unit indicators ---
+    states.extend(_build_unit_states(unit_prefs))
+    states.append({"key": "deviceStatus", "value": "Active"})
+    return states
 
 
 # =============================================================================

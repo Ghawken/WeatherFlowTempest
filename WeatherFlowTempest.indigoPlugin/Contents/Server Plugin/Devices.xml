@@ -1093,4 +1093,345 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 		</States>
 	</Device>
 
+	<!-- ============================================================
+	     Public Tempest Station
+	     Any publicly-shared WeatherFlow station — no personal token required
+	     ============================================================ -->
+	<Device type="custom" id="publicTempestStation" allowUserCreation="true">
+		<Name>Public Tempest Station</Name>
+		<UiDisplayStateId>air_temperature</UiDisplayStateId>
+
+		<ConfigUI>
+			<Field id="sep0" type="separator"/>
+			<Field id="lbl0" type="label" fontSize="large" fontColor="blue">
+				<Label>Public WeatherFlow Station</Label>
+			</Field>
+			<Field id="sep1" type="separator"/>
+
+			<Field id="lbl_desc" type="label">
+				<Label>Monitor any public WeatherFlow station. No personal API token required.
+
+Find the station ID in the URL on tempestwx.com — e.g. tempestwx.com/station/130809/ → ID is 130809</Label>
+			</Field>
+			<Field id="sep1b" type="separator"/>
+
+			<Field id="stationId" type="textfield" defaultValue=""
+				   tooltip="Numeric station ID from the tempestwx.com URL">
+				<Label>Station ID:</Label>
+			</Field>
+
+			<Field id="sep2" type="separator"/>
+
+			<Field id="lbl_units" type="label" fontSize="regular">
+				<Label>Measurement Units</Label>
+			</Field>
+			<Field id="lbl_units_note" type="label" fontSize="small" fontColor="grey">
+				<Label>Units are requested directly from the WeatherFlow API — no conversion applied.</Label>
+			</Field>
+			<Field id="sep2b" type="separator"/>
+
+			<Field id="tempUnit" type="menu" defaultValue="celsius">
+				<Label>Temperature:</Label>
+				<List>
+					<Option value="celsius">Celsius (°C)</Option>
+					<Option value="fahrenheit">Fahrenheit (°F)</Option>
+				</List>
+			</Field>
+
+			<Field id="pressureUnit" type="menu" defaultValue="hpa">
+				<Label>Pressure:</Label>
+				<List>
+					<Option value="hpa">Hectopascal (hPa)</Option>
+					<Option value="mmhg">Millimetres Hg (mmHg)</Option>
+					<Option value="inhg">Inches Hg (inHg)</Option>
+				</List>
+			</Field>
+
+			<Field id="windUnit" type="menu" defaultValue="ms">
+				<Label>Wind Speed:</Label>
+				<List>
+					<Option value="ms">Metres per second (m/s)</Option>
+					<Option value="kmh">Kilometres per hour (km/h)</Option>
+					<Option value="knots">Knots (kn)</Option>
+					<Option value="mph">Miles per hour (mph)</Option>
+				</List>
+			</Field>
+
+			<Field id="rainUnit" type="menu" defaultValue="mm">
+				<Label>Rainfall:</Label>
+				<List>
+					<Option value="mm">Millimetres (mm)</Option>
+					<Option value="inch">Inches (in)</Option>
+				</List>
+			</Field>
+
+			<Field id="distUnit" type="menu" defaultValue="km">
+				<Label>Distance Display:</Label>
+				<List>
+					<Option value="km">Kilometres (km)</Option>
+					<Option value="mi">Miles (mi)</Option>
+				</List>
+			</Field>
+
+			<Field id="sep3" type="separator"/>
+		</ConfigUI>
+
+		<States>
+			<!-- Temperature -->
+			<State id="air_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Air Temperature</TriggerLabel>
+				<ControlPageLabel>Air Temp</ControlPageLabel>
+			</State>
+			<State id="dew_point_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Dew Point Temperature</TriggerLabel>
+				<ControlPageLabel>Dew Point</ControlPageLabel>
+			</State>
+			<State id="wet_bulb_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wet Bulb Temperature</TriggerLabel>
+				<ControlPageLabel>Wet Bulb</ControlPageLabel>
+			</State>
+			<State id="feels_like_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Feels Like Temperature</TriggerLabel>
+				<ControlPageLabel>Feels Like</ControlPageLabel>
+			</State>
+			<State id="heat_index">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Heat Index</TriggerLabel>
+				<ControlPageLabel>Heat Index</ControlPageLabel>
+			</State>
+			<State id="wind_chill_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Chill Temperature</TriggerLabel>
+				<ControlPageLabel>Wind Chill</ControlPageLabel>
+			</State>
+			<State id="delta_t">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Delta T (°C differential)</TriggerLabel>
+				<ControlPageLabel>Delta T</ControlPageLabel>
+			</State>
+			<State id="air_density">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Air Density (kg/m³)</TriggerLabel>
+				<ControlPageLabel>Air Density</ControlPageLabel>
+			</State>
+
+			<!-- Atmospheric -->
+			<State id="relative_humidity">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Relative Humidity (%)</TriggerLabel>
+				<ControlPageLabel>Humidity %</ControlPageLabel>
+			</State>
+			<State id="station_pressure">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Station Pressure</TriggerLabel>
+				<ControlPageLabel>Pressure</ControlPageLabel>
+			</State>
+			<State id="sea_level_pressure">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Sea Level Pressure</TriggerLabel>
+				<ControlPageLabel>SLP</ControlPageLabel>
+			</State>
+			<State id="pressure_trend">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Pressure Trend</TriggerLabel>
+				<ControlPageLabel>Pressure Trend</ControlPageLabel>
+			</State>
+
+			<!-- Light / UV -->
+			<State id="solar_radiation">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Solar Radiation (W/m²)</TriggerLabel>
+				<ControlPageLabel>Solar Rad W/m²</ControlPageLabel>
+			</State>
+			<State id="illuminance">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Illuminance (lux)</TriggerLabel>
+				<ControlPageLabel>Illuminance lux</ControlPageLabel>
+			</State>
+			<State id="uv">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>UV Index</TriggerLabel>
+				<ControlPageLabel>UV Index</ControlPageLabel>
+			</State>
+
+			<!-- Wind -->
+			<State id="wind_average">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Speed Average</TriggerLabel>
+				<ControlPageLabel>Wind Avg</ControlPageLabel>
+			</State>
+			<State id="wind_speed">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Speed (alias for wind_average)</TriggerLabel>
+				<ControlPageLabel>Wind Speed</ControlPageLabel>
+			</State>
+			<State id="wind_gust">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Gust</TriggerLabel>
+				<ControlPageLabel>Wind Gust</ControlPageLabel>
+			</State>
+			<State id="wind_lull">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Lull</TriggerLabel>
+				<ControlPageLabel>Wind Lull</ControlPageLabel>
+			</State>
+			<State id="wind_direction">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Direction (°)</TriggerLabel>
+				<ControlPageLabel>Wind Dir °</ControlPageLabel>
+			</State>
+			<State id="wind_direction_average">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Direction Average (°)</TriggerLabel>
+				<ControlPageLabel>Wind Dir Avg °</ControlPageLabel>
+			</State>
+			<State id="wind_direction_cardinal">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Wind Direction Cardinal</TriggerLabel>
+				<ControlPageLabel>Wind Dir</ControlPageLabel>
+			</State>
+			<State id="wind_direction_average_cardinal">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Wind Direction Average Cardinal</TriggerLabel>
+				<ControlPageLabel>Wind Dir Avg</ControlPageLabel>
+			</State>
+
+			<!-- Rain -->
+			<State id="rain_today">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Today</TriggerLabel>
+				<ControlPageLabel>Rain Today</ControlPageLabel>
+			</State>
+			<State id="rain_yesterday">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Yesterday</TriggerLabel>
+				<ControlPageLabel>Rain Yesterday</ControlPageLabel>
+			</State>
+			<State id="rain_last_1hr">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Last 1 Hour</TriggerLabel>
+				<ControlPageLabel>Rain 1hr</ControlPageLabel>
+			</State>
+			<State id="rain_duration_today">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Rain Duration Today (minutes)</TriggerLabel>
+				<ControlPageLabel>Rain Min Today</ControlPageLabel>
+			</State>
+			<State id="rain_duration_yesterday">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Rain Duration Yesterday (minutes)</TriggerLabel>
+				<ControlPageLabel>Rain Min Yesterday</ControlPageLabel>
+			</State>
+
+			<!-- Lightning -->
+			<State id="lightning_strike_count">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Lightning Strike Count (today)</TriggerLabel>
+				<ControlPageLabel>Lightning Today</ControlPageLabel>
+			</State>
+			<State id="lightning_count_last_1hr">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Lightning Strikes Last 1 Hour</TriggerLabel>
+				<ControlPageLabel>Lightning 1hr</ControlPageLabel>
+			</State>
+			<State id="lightning_count_last_3hr">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Lightning Strikes Last 3 Hours</TriggerLabel>
+				<ControlPageLabel>Lightning 3hr</ControlPageLabel>
+			</State>
+			<State id="last_strike_distance">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Last Lightning Strike Distance (km)</TriggerLabel>
+				<ControlPageLabel>Last Strike km</ControlPageLabel>
+			</State>
+
+			<!-- Station identity -->
+			<State id="station_name">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Station Name</TriggerLabel>
+				<ControlPageLabel>Station Name</ControlPageLabel>
+			</State>
+			<State id="latitude">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Station Latitude</TriggerLabel>
+				<ControlPageLabel>Latitude</ControlPageLabel>
+			</State>
+			<State id="longitude">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Station Longitude</TriggerLabel>
+				<ControlPageLabel>Longitude</ControlPageLabel>
+			</State>
+			<State id="elevation">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Station Elevation (m)</TriggerLabel>
+				<ControlPageLabel>Elevation m</ControlPageLabel>
+			</State>
+
+			<!-- Distance from Indigo server -->
+			<State id="distance_km">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Distance from Indigo Server (km)</TriggerLabel>
+				<ControlPageLabel>Distance km</ControlPageLabel>
+			</State>
+			<State id="distance_mi">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Distance from Indigo Server (miles)</TriggerLabel>
+				<ControlPageLabel>Distance mi</ControlPageLabel>
+			</State>
+			<State id="bearing">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Bearing from Indigo Server (°)</TriggerLabel>
+				<ControlPageLabel>Bearing °</ControlPageLabel>
+			</State>
+			<State id="bearing_cardinal">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Bearing Cardinal Direction</TriggerLabel>
+				<ControlPageLabel>Direction</ControlPageLabel>
+			</State>
+			<State id="distance_description">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Distance Description (e.g. 1.5 km North)</TriggerLabel>
+				<ControlPageLabel>Distance</ControlPageLabel>
+			</State>
+
+			<!-- Unit indicators -->
+			<State id="unit_temperature">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Temperature Unit</TriggerLabel>
+				<ControlPageLabel>Temp Unit</ControlPageLabel>
+			</State>
+			<State id="unit_pressure">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Pressure Unit</TriggerLabel>
+				<ControlPageLabel>Pressure Unit</ControlPageLabel>
+			</State>
+			<State id="unit_wind">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Wind Speed Unit</TriggerLabel>
+				<ControlPageLabel>Wind Unit</ControlPageLabel>
+			</State>
+			<State id="unit_rain">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Rainfall Unit</TriggerLabel>
+				<ControlPageLabel>Rain Unit</ControlPageLabel>
+			</State>
+
+			<!-- Status -->
+			<State id="deviceStatus">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Device Status</TriggerLabel>
+				<ControlPageLabel>Status</ControlPageLabel>
+			</State>
+			<State id="last_updated">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last Updated (local time)</TriggerLabel>
+				<ControlPageLabel>Last Updated</ControlPageLabel>
+			</State>
+		</States>
+	</Device>
+
 </Devices>
