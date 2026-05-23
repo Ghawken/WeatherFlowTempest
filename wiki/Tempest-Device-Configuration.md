@@ -4,6 +4,7 @@ Open a Tempest Weather Station device to edit its settings.
 
 ![Device Configuration](https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/deviceConfig.png)
 
+
 ---
 
 ## Device Selection

@@ -4,6 +4,7 @@ Open **Plugins → WeatherFlow Tempest Weather Station → Configure**.
 
 ![Plugin Configuration](https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/pluginConfig.png)
 
+
 ---
 
 ## Device Generation
