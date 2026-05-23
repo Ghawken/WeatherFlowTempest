@@ -1,7 +1,10 @@
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/banner.png" width="100%">
+
 # WeatherFlow Web API
 
 The WeatherFlow Web API is an **optional** feature that supplements the local UDP data with cloud-sourced information. It requires a free Personal Use Token from your WeatherFlow account.
 
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ---
 
@@ -23,7 +26,7 @@ When the Web API is active alongside UDP, real-time sensor readings (temperature
 
 In **web-only mode**, all states including real-time sensor readings come from the web API, polled every **60 seconds**.
 
----
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## Setup
 
@@ -47,7 +50,7 @@ Open **Plugins → WeatherFlow Tempest Weather Station → Configure**.
 2. Paste your token into the **API Token** field.
 3. Click **Save**. The web poller starts automatically.
 
----
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## Poll intervals
 
@@ -58,7 +61,7 @@ Open **Plugins → WeatherFlow Tempest Weather Station → Configure**.
 
 The plugin selects the interval automatically based on whether any device is in web-only mode.
 
----
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## Web-only Mode
 
@@ -80,7 +83,7 @@ The device status changes to **Active (web)** once the first poll succeeds. All 
 
 Open the WeatherFlow app, tap your station name, then tap **Settings**. The Station ID is the number shown in the Station Information section. It is also visible in the URL when you view your station on tempestwx.com — e.g. `tempestwx.com/station/`**183063**.
 
----
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## Error handling
 
@@ -94,7 +97,7 @@ The plugin tracks consecutive failures per station:
 
 A 401 Unauthorized error means either the token is invalid or the Station ID does not belong to the token's account. Check both in Plugin Preferences and the device configuration.
 
----
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## Interaction with UDP data
 

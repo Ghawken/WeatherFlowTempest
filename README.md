@@ -40,15 +40,15 @@ See Wiki: https://github.com/Ghawken/WeatherFlowTempest/wiki
 
 | Page | Contents |
 |---|---|
-| [[Installation]] | Requirements and install steps |
-| [[Plugin-Configuration]] | UDP port, Web API token, log levels, device auto-generation |
-| [[Web-API]] | Web API setup, web-only mode, extra states |
-| [[Tempest-Device-Configuration]] | Unit selection, altitude, device picker, web-only mode |
-| [[Device-States]] | Every state — what it means, units, notes |
-| [[Triggers]] | Lightning, rain-start, and rapid-wind triggers |
-| [[Rain-Data]] | How daily rain is sourced and why power-save mode matters |
-| [[Troubleshooting]] | Common problems and fixes |
-| [[Architecture]] | Internal design: UDP → asyncio → Indigo |
+| [Installation](https://github.com/Ghawken/WeatherFlowTempest/wiki/Installation) | Requirements and install steps |
+| [Plugin Configuration](https://github.com/Ghawken/WeatherFlowTempest/wiki/Plugin-Configuration) | UDP port, Web API token, log levels, device auto-generation |
+| [Web API](https://github.com/Ghawken/WeatherFlowTempest/wiki/Web-API) | Web API setup, web-only mode, extra states |
+| [Tempest Device Configuration](https://github.com/Ghawken/WeatherFlowTempest/wiki/Tempest-Device-Configuration) | Unit selection, altitude, device picker, web-only mode |
+| [Device States](https://github.com/Ghawken/WeatherFlowTempest/wiki/Device-States) | Every state — what it means, units, notes |
+| [Triggers](https://github.com/Ghawken/WeatherFlowTempest/wiki/Triggers) | Lightning, rain-start, and rapid-wind triggers |
+| [Rain Data](https://github.com/Ghawken/WeatherFlowTempest/wiki/Rain-Data) | How daily rain is sourced and why power-save mode matters |
+| [Troubleshooting](https://github.com/Ghawken/WeatherFlowTempest/wiki/Troubleshooting) | Common problems and fixes |
+| [Architecture](https://github.com/Ghawken/WeatherFlowTempest/wiki/Architecture) | Internal design: UDP → asyncio → Indigo |
 
 <img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
@@ -69,7 +69,7 @@ See Wiki: https://github.com/Ghawken/WeatherFlowTempest/wiki
 
 For web API features, see [Plugin Configuration](#plugin-configuration) below.
 
-See [[Installation]] for full details.
+See the [Installation wiki page](https://github.com/Ghawken/WeatherFlowTempest/wiki/Installation) for full details.
 
 <img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 

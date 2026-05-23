@@ -1,9 +1,14 @@
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/banner.png" width="100%">
+
 # Plugin Configuration
 
 Open **Plugins → WeatherFlow Tempest Weather Station → Configure**.
 
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
+
 ![Plugin Configuration](https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/pluginConfig.png)
 
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ---
 
@@ -13,7 +18,7 @@ Click **Generate Devices** to auto-create one Indigo device for every Tempest an
 
 Re-press whenever new Tempest or Hub devices are added to your setup.
 
----
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## UDP Listener Settings
 
@@ -24,7 +29,7 @@ Re-press whenever new Tempest or Hub devices are added to your setup.
 
 Saving the preferences automatically restarts the UDP listener — no plugin reload needed.
 
----
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## WeatherFlow Web API (Optional)
 
@@ -53,7 +58,7 @@ See [[Web-API]] for full details including web-only mode for remote hubs.
 
 The token is free and tied to your WeatherFlow account. The API only serves stations registered to your account.
 
----
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## Debugging Options
 
@@ -77,7 +82,7 @@ Available levels (lowest to highest verbosity):
 
 Turn debug logging off again once the issue is resolved — verbose logging has a small performance cost and the log file grows quickly.
 
----
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## Plugin Menu
 

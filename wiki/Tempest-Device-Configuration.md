@@ -1,10 +1,14 @@
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/banner.png" width="100%">
+
 # Tempest Device Configuration
 
 Open a Tempest Weather Station device to edit its settings.
 
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
+
 ![Device Configuration](https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/deviceConfig.png)
 
----
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## Device Selection
 
@@ -14,7 +18,7 @@ Open a Tempest Weather Station device to edit its settings.
 
 > If the hub is on a different network and no devices appear, use **Web-only mode** instead — see below.
 
----
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## Web-only Mode
 
@@ -34,7 +38,7 @@ The Web API must be enabled with a valid token in **Plugin Preferences** for web
 
 See [[Web-API]] for full details.
 
----
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## Altitude
 
@@ -52,7 +56,7 @@ Set to a non-zero value to enable three derived states:
 
 Set to `0` to omit these states entirely (they will not appear in the device state list).
 
----
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## Measurement Units
 
@@ -77,7 +81,7 @@ Changes take effect on the **next sensor observation** (within ~1 minute for a n
 
 These states make it easy to display the correct unit label on Indigo control pages without hardcoding it.
 
----
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## Tips
 
