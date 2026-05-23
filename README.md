@@ -4,6 +4,8 @@
 
 Receives live weather data from [WeatherFlow Tempest](https://weatherflow.com/tempest-weather-system/) stations via **local UDP broadcast** and maps all sensor observations to Indigo device states. No cloud account or API key is required. Everything runs on your local network.
 
+See Wiki https://github.com/Ghawken/WeatherFlowTempest/wiki
+
 <img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
 ## Screenshot
