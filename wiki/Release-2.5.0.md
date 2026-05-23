@@ -3,7 +3,7 @@
 # Release 2.5.0
 
 **Released:** 2026-05-23
-**Minimum Indigo version:** 2022.1
+**Minimum Indigo version:** 2025.2
 
 ← [Back to Changelog](https://github.com/Ghawken/WeatherFlowTempest/wiki/Changelog)
 
