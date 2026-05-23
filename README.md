@@ -231,21 +231,80 @@ Unit selections are independent — mix and match as needed. Changes take effect
 
 ---
 
-## Triggers
+# Triggers
 
-Three custom trigger types are available under **Triggers → WeatherFlow Tempest Weather Station**.
+Three custom trigger types are available under **Triggers → New Trigger → WeatherFlow Tempest Weather Station**.
 
-### Lightning Strike Detected
-Fires when the selected Tempest detects a lightning strike. Attach actions to send alerts, flash lights, etc.
+Each trigger includes a **Tempest Device** picker so it can be scoped to a specific station when you have more than one.
 
-### Rain Started
-Fires when the Tempest detects the onset of precipitation. Useful for closing vents or retracting awnings.
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
-### Rapid Wind Exceeds Threshold
-Fires when an instantaneous wind reading meets or exceeds a configurable speed (m/s). Rapid-wind readings arrive approximately every 3 seconds.
+## Lightning Strike Detected
 
-> All three triggers include a **Tempest Device** picker so each trigger can be scoped to a specific station.
+Fires whenever the selected Tempest detects a lightning strike.
 
+**Configuration:**
+
+| Field | Description |
+|---|---|
+| **Tempest Device** | The Tempest station to watch. Leave blank to fire for any station. |
+
+**Use cases:**
+- Send a push notification with distance and energy.
+- Flash a light or sound an alert.
+- Log strikes to a variable for counting.
+
+**Available at trigger time:** The `last_strike_distance`, `last_strike_energy`, and `last_strike_time` device states are updated before the trigger fires, so you can read them in trigger actions.
+
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
+
+## Rain Started
+
+Fires when the Tempest detects the onset of precipitation (the first rain-start event after a dry period).
+
+**Configuration:**
+
+| Field | Description |
+|---|---|
+| **Tempest Device** | The Tempest station to watch. |
+
+**Use cases:**
+- Close roof vents or skylights.
+- Retract a pergola awning.
+- Send a "rain started" notification.
+
+> **Note:** This trigger fires from the Tempest's dedicated rain-start event, which is sent immediately when the sensor detects rain — independent of the 1-minute observation cycle. It fires once per rain onset, not repeatedly while rain continues.
+
+The `last_rain_start` device state is updated when this trigger fires.
+
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
+
+## Rapid Wind Exceeds Threshold
+
+Fires when an instantaneous wind reading meets or exceeds a configurable speed.
+
+Rapid-wind readings arrive approximately **every 3 seconds**, giving near-real-time wind monitoring.
+
+**Configuration:**
+
+| Field | Description |
+|---|---|
+| **Tempest Device** | The Tempest station to watch. |
+| **Threshold (m/s)** | Minimum wind speed (in m/s) required to fire the trigger. |
+
+**Use cases:**
+- Close greenhouse vents above 10 m/s.
+- Retract a sail shade above 15 m/s.
+- Log wind gusts to a time-stamped variable.
+
+> The threshold is always compared against the **raw m/s magnitude** regardless of the display unit set in the device configuration. Convert your target speed if needed: 1 m/s = 3.6 km/h = 2.237 mph = 1.944 kn.
+
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
+
+## Trigger Limitations
+
+- In power-save **MODE_2** and above, rapid-wind events are not sent by the Tempest. The *Rapid Wind Exceeds Threshold* trigger will not fire in those modes. The `wind_speed` state still updates from the 1-minute observation, but at a lower frequency.
+- Lightning and rain-start triggers fire from discrete UDP events and are not affected by power-save mode.
 ---
 
 ## Station Silence Detection
