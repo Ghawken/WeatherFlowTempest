@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>PluginVersion</key>
-	<string>1.1.8</string>
+	<string>1.2.0</string>
 	<key>ServerApiVersion</key>
 	<string>3.4</string>
 	<key>IwsApiVersion</key>
@@ -16,5 +16,12 @@
 	<string>com.GlennNZ.indigoplugin.weatherflowtempest</string>
 	<key>CFBundleVersion</key>
 	<string>1.0.0</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>https://forums.indigodomo.com/viewtopic.php?t=29005</string>
+		</dict>
+	</array>
 </dict>
 </plist>
