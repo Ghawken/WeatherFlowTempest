@@ -9,11 +9,19 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
       - name: Clone wiki repo
-        run: git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git wiki-repo
+        run: |
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git wiki-repo || {
+            echo "ERROR: Could not clone the wiki repo."
+            echo "The GitHub wiki must be initialized before this Action can push to it."
+            echo "Go to the Wiki tab on GitHub, click 'Create the first page', and save."
+            exit 1
+          }
 
       - name: Copy pages
         run: cp wiki/*.md wiki-repo/
@@ -24,5 +32,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --staged --quiet || git commit -m "Sync wiki from main repo [skip ci]"
-          git push
+          git diff --staged --quiet && echo "No changes to sync." || {
+            git commit -m "Sync wiki from main repo [skip ci]"
+            git push
+            echo "Wiki updated successfully."
+          }
