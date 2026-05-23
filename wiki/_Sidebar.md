@@ -28,3 +28,9 @@
 **Help**
 * [Troubleshooting](https://github.com/Ghawken/WeatherFlowTempest/wiki/Troubleshooting)
 * [Architecture](https://github.com/Ghawken/WeatherFlowTempest/wiki/Architecture)
+
+---
+
+**Releases**
+* [Changelog](https://github.com/Ghawken/WeatherFlowTempest/wiki/Changelog)
+* [2.0.2](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.0.2)
