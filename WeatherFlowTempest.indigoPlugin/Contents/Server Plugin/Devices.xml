@@ -22,12 +22,37 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 			</Field>
 			<Field id="sep1b" type="separator"/>
 
+			<!-- UDP discovery mode (default) -->
 			<Field id="serialNumber"
 				   type="menu"
 				   defaultValue=""
-				   tooltip="Tempest devices discovered on the network. Reload this dialog if the list is empty.">
+				   tooltip="Tempest devices discovered on the network. Reload this dialog if the list is empty."
+				   visibleBindingId="webOnly"
+				   visibleBindingValue="false">
 				<Label>Tempest Device:</Label>
 				<List class="self" filter="" method="getDiscoveredDeviceList" dynamicReload="true"/>
+			</Field>
+
+			<Field id="sep1c" type="separator"/>
+
+			<!-- Web-only override -->
+			<Field id="webOnly" type="checkbox" defaultValue="false">
+				<Label>Web-only (hub on different network):</Label>
+			</Field>
+			<Field id="lbl_webonly" type="label" fontSize="small" fontColor="grey"
+				   visibleBindingId="webOnly"
+				   visibleBindingValue="true">
+				<Label>Enter your WeatherFlow station ID (WeatherFlow app → tap station name → Settings). Your API token (set in Plugin Config) is used to fetch the data.
+
+Note: the WeatherFlow REST API only serves stations associated with the token — accessing a neighbour's station requires their personal token, not yours.</Label>
+			</Field>
+			<Field id="stationId"
+				   type="textfield"
+				   defaultValue=""
+				   tooltip="WeatherFlow station ID — a number found in the WeatherFlow app settings"
+				   visibleBindingId="webOnly"
+				   visibleBindingValue="true">
+				<Label>Station ID:</Label>
 			</Field>
 
 			<Field id="sep3" type="separator"/>
@@ -424,6 +449,43 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				<ValueType>String</ValueType>
 				<TriggerLabel>Device Status</TriggerLabel>
 				<ControlPageLabel>Status</ControlPageLabel>
+			</State>
+
+			<!-- Web API exclusive states -->
+			<State id="rain_last_1hr">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Last 1 Hour</TriggerLabel>
+				<ControlPageLabel>Rain 1hr</ControlPageLabel>
+			</State>
+			<State id="rain_duration_today">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Rain Duration Today (minutes)</TriggerLabel>
+				<ControlPageLabel>Rain Min Today</ControlPageLabel>
+			</State>
+			<State id="rain_duration_yesterday">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Rain Duration Yesterday (minutes)</TriggerLabel>
+				<ControlPageLabel>Rain Min Yesterday</ControlPageLabel>
+			</State>
+			<State id="conditions">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Weather Conditions</TriggerLabel>
+				<ControlPageLabel>Conditions</ControlPageLabel>
+			</State>
+			<State id="weather_icon">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Weather Icon Name</TriggerLabel>
+				<ControlPageLabel>Weather Icon</ControlPageLabel>
+			</State>
+			<State id="lightning_count_last_1hr">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Lightning Strikes Last 1 Hour</TriggerLabel>
+				<ControlPageLabel>Lightning 1hr</ControlPageLabel>
+			</State>
+			<State id="lightning_count_last_3hr">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Lightning Strikes Last 3 Hours</TriggerLabel>
+				<ControlPageLabel>Lightning 3hr</ControlPageLabel>
 			</State>
 		</States>
 	</Device>

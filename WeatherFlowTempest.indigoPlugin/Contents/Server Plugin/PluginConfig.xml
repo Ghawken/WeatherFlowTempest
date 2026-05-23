@@ -50,6 +50,34 @@ Re-press whenever new Tempest or Hub devices are added.</Label>
 		<Label>Changes take effect after saving — the listener restarts automatically.</Label>
 	</Field>
 
+	<Field id="sep_api" type="separator"/>
+
+	<!-- Web API -->
+	<Field id="lbl_api" type="label" fontSize="regular">
+		<Label>WeatherFlow Web API (Optional)</Label>
+	</Field>
+	<Field id="lbl_api_desc" type="label" fontSize="small" fontColor="grey">
+		<Label>Enables authoritative rain totals, rain duration, hourly lightning
+counts, and weather conditions. Also allows web-only mode when the hub
+is on a different network (enter the serial number manually on the device).</Label>
+	</Field>
+	<Field id="useWebData" type="checkbox" defaultValue="false">
+		<Label>Enable Web API:</Label>
+	</Field>
+	<Field id="apiToken"
+		   type="textfield"
+		   defaultValue=""
+		   tooltip="Personal Use Token from tempestwx.com → Settings → Data Authorizations."
+		   visibleBindingId="useWebData"
+		   visibleBindingValue="true">
+		<Label>API Token:</Label>
+	</Field>
+	<Field id="lbl_api_link" type="label" fontSize="small" fontColor="grey"
+		   visibleBindingId="useWebData"
+		   visibleBindingValue="true">
+		<Label>Get your free token: tempestwx.com → Settings → Data Authorizations</Label>
+	</Field>
+
 	<Field id="sep3" type="separator"/>
 
 	<!-- Debug logging -->

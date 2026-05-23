@@ -13,9 +13,11 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import json
 import logging
 import threading
 import time
+import urllib.request
 from typing import Any
 
 import indigo  # type: ignore
@@ -44,6 +46,7 @@ from pyweatherflowudp.errors import ListenerError
 # Pint unit for manual quantity construction (e.g. wrapping a plain float as mm)
 _UNIT_MM = units.mm
 
+_WEB_API_BASE = "https://swd.weatherflow.com/swd/rest"
 
 _RAIN_CHECK_LABELS: dict[int, str] = {0: "none", 1: "on", 2: "off"}
 
@@ -206,6 +209,16 @@ def _patch_sky_device() -> None:
         )
 
 
+_CARDINALS = [
+    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW",
+]
+
+
+def _degrees_to_cardinal(degrees: float) -> str:
+    return _CARDINALS[round(degrees / 22.5) % 16]
+
+
 class Plugin(indigo.PluginBase):
     """WeatherFlow Tempest Weather Station plugin."""
 
@@ -254,6 +267,11 @@ class Plugin(indigo.PluginBase):
         self._silence_warned: dict[str, float] = {}
         # serial_number -> ISO date of last observation (midnight-rollover detection)
         self._rain_date: dict[str, str] = {}
+        # serial_number -> WeatherFlow station_id (discovered via REST /stations)
+        self._station_id_map: dict[str, int] = {}
+        self._web_poll_task: asyncio.Task | None = None
+        # station_id -> consecutive poll failure count (resets on success; suspends at 3)
+        self._station_fail_count: dict[int, int] = {}
 
     # -------------------------------------------------------------------------
     # Plugin lifecycle
@@ -273,11 +291,13 @@ class Plugin(indigo.PluginBase):
         self._async_thread.start()
 
         for dev in indigo.devices.iter("self"):
-            sn = dev.pluginProps.get("serialNumber", "").strip()
-            if sn:
-                self._serial_to_dev_id[sn] = dev.id
+            if not dev.pluginProps.get("webOnly", False):
+                sn = dev.pluginProps.get("serialNumber", "").strip()
+                if sn:
+                    self._serial_to_dev_id[sn] = dev.id
 
         asyncio.run_coroutine_threadsafe(self._start_listener(), self._event_loop)
+        self._start_web_poller()
 
     def shutdown(self) -> None:
         self.logger.info("WeatherFlow Tempest: shutting down")
@@ -290,6 +310,8 @@ class Plugin(indigo.PluginBase):
                 udp_task = getattr(self._listener, "_udp_task", None)
                 if udp_task and not udp_task.done():
                     loop.call_soon_threadsafe(udp_task.cancel)
+            if self._web_poll_task and not self._web_poll_task.done():
+                loop.call_soon_threadsafe(self._web_poll_task.cancel)
             loop.call_soon_threadsafe(loop.stop)
 
     def runConcurrentThread(self) -> None:
@@ -312,6 +334,15 @@ class Plugin(indigo.PluginBase):
                         self._restart_listener(), self._event_loop
                     )
                     continue
+
+                # Restart web poller if it exited unexpectedly (e.g. unhandled exception)
+                if (
+                    self.pluginPrefs.get("useWebData", False)
+                    and self.pluginPrefs.get("apiToken", "").strip()
+                    and (self._web_poll_task is None or self._web_poll_task.done())
+                ):
+                    self.logger.warning("WeatherFlow web API poller stopped — restarting")
+                    self._start_web_poller()
 
                 # Heartbeat: detect stations that have gone silent
                 now = time.time()
@@ -393,8 +424,17 @@ class Plugin(indigo.PluginBase):
 
     def _on_device_discovered(self, device: WeatherFlowDevice) -> None:
         sn = device.serial_number
+        if sn in self._discovered:
+            return  # pyweatherflowudp can fire this event more than once per device
         self._discovered[sn] = device
         self.logger.info("Discovered WeatherFlow device: %s  model=%s", sn, device.model)
+
+        # If the Indigo device is configured as web-only, skip UDP subscriptions
+        # entirely — all state updates come from the web API instead.
+        indigo_dev = self._get_indigo_dev(sn)
+        if indigo_dev is not None and indigo_dev.pluginProps.get("webOnly", False):
+            self.logger.debug("%s: web-only — skipping UDP event subscriptions", sn)
+            return
 
         if isinstance(device, WeatherFlowSensorDevice):
             self._subscribe_sensor(device)
@@ -805,6 +845,22 @@ class Plugin(indigo.PluginBase):
         # in plugin updates without requiring the user to delete/recreate devices.
         device.stateListOrDisplayStateIdChanged()
 
+        # Web-only mode: station ID entered manually; no UDP discovery.
+        # The web poller iterates Indigo devices directly and populates all states.
+        if device.pluginProps.get("webOnly", False):
+            station_id_str = device.pluginProps.get("stationId", "").strip()
+            if not station_id_str:
+                self.logger.warning("%s: web-only mode requires a station ID", device.name)
+                return
+            try:
+                station_id = int(station_id_str)
+            except (ValueError, TypeError):
+                self.logger.warning("%s: invalid station ID %r", device.name, station_id_str)
+                return
+            device.updateStateOnServer("deviceStatus", "Waiting for web data")
+            self.logger.info("%s: web-only comm started, station_id=%d", device.name, station_id)
+            return
+
         sn = device.pluginProps.get("serialNumber", "").strip()
         if not sn:
             self.logger.warning("%s: no serial number configured", device.name)
@@ -835,17 +891,19 @@ class Plugin(indigo.PluginBase):
                 self._on_hub_status(wf_dev)
 
     def deviceStopComm(self, device) -> None:
-        sn = device.pluginProps.get("serialNumber", "").strip()
-        if sn:
-            self._unsubscribe(sn)
-            self._serial_to_dev_id.pop(sn, None)
+        if not device.pluginProps.get("webOnly", False):
+            sn = device.pluginProps.get("serialNumber", "").strip()
+            if sn:
+                self._unsubscribe(sn)
+                self._serial_to_dev_id.pop(sn, None)
+                self._station_id_map.pop(sn, None)
         self.logger.info("%s: comm stopped", device.name)
 
     # -------------------------------------------------------------------------
     # Plugin config UI
     # -------------------------------------------------------------------------
 
-    def validatePluginConfigUi(self, valuesDict, typeId, devId):
+    def validatePrefsConfigUi(self, valuesDict):
         errors = indigo.Dict()
         try:
             port = int(valuesDict.get("udpPort", str(DEFAULT_PORT)))
@@ -857,22 +915,26 @@ class Plugin(indigo.PluginBase):
             return False, valuesDict, errors
         return True, valuesDict, errors
 
-    def closedPluginConfigUi(self, valuesDict, userCancelled) -> None:
-        if not userCancelled:
-            try:
-                self.logLevel = int(valuesDict.get("showDebugLevel", logging.INFO))
-                self.indigo_log_handler.setLevel(self.logLevel)
-            except (ValueError, TypeError):
-                pass
-            try:
-                fileLevel = int(valuesDict.get("showDebugFileLevel", logging.DEBUG))
-                self.plugin_file_handler.setLevel(fileLevel)
-            except (ValueError, TypeError):
-                pass
-            if self._event_loop:
-                asyncio.run_coroutine_threadsafe(
-                    self._restart_listener(), self._event_loop
-                )
+    def closedPrefsConfigUi(self, valuesDict, userCancelled) -> None:
+        if userCancelled:
+            return
+        try:
+            self.logLevel = int(valuesDict.get("showDebugLevel", logging.INFO))
+            self.indigo_log_handler.setLevel(self.logLevel)
+        except (ValueError, TypeError):
+            pass
+        try:
+            fileLevel = int(valuesDict.get("showDebugFileLevel", logging.DEBUG))
+            self.plugin_file_handler.setLevel(fileLevel)
+        except (ValueError, TypeError):
+            pass
+        self.logger.info("WeatherFlow: preferences saved — restarting UDP listener")
+        if self._event_loop:
+            asyncio.run_coroutine_threadsafe(
+                self._restart_listener(), self._event_loop
+            )
+        self._start_web_poller()
+
 
     # -------------------------------------------------------------------------
     # Device config UI
@@ -880,11 +942,21 @@ class Plugin(indigo.PluginBase):
 
     def validateDeviceConfigUi(self, valuesDict, typeId, devId):
         errors = indigo.Dict()
-        sn = valuesDict.get("serialNumber", "").strip()
-        if not sn or sn.startswith("__"):
-            errors["serialNumber"] = (
-                "No device selected. Wait for discovery or check hub is on the same network."
-            )
+        if valuesDict.get("webOnly", False):
+            station_id = valuesDict.get("stationId", "").strip()
+            if not station_id:
+                errors["stationId"] = (
+                    "Enter your WeatherFlow station ID (WeatherFlow app → station Settings)"
+                )
+            elif not station_id.isdigit():
+                errors["stationId"] = "Station ID must be a number (e.g. 12345)"
+        else:
+            sn = valuesDict.get("serialNumber", "").strip()
+            if not sn or sn.startswith("__"):
+                errors["serialNumber"] = (
+                    "No device selected. Wait for discovery or check hub is on the same network."
+                )
+        if errors:
             return False, valuesDict, errors
         return True, valuesDict, errors
 
@@ -993,6 +1065,252 @@ class Plugin(indigo.PluginBase):
         self.logger.info("WeatherFlow: manually restarting UDP listener")
         if self._event_loop:
             asyncio.run_coroutine_threadsafe(self._restart_listener(), self._event_loop)
+
+    # -------------------------------------------------------------------------
+    # Web API — polling and state update
+    # -------------------------------------------------------------------------
+
+    def _start_web_poller(self) -> None:
+        """Start (or restart) the background web API polling task."""
+        loop = self._event_loop
+        # Always cancel any running task first (handles checkbox being unchecked)
+        if self._web_poll_task and not self._web_poll_task.done() and loop:
+            loop.call_soon_threadsafe(self._web_poll_task.cancel)
+            self._web_poll_task = None
+        if not self.pluginPrefs.get("useWebData", False):
+            return
+        api_token = self.pluginPrefs.get("apiToken", "").strip()
+        if not api_token:
+            self.logger.warning("WeatherFlow web API: enabled but no token configured")
+            return
+        if not loop or not loop.is_running():
+            return
+        def _schedule():
+            self._web_poll_task = loop.create_task(self._web_poll_loop())
+        loop.call_soon_threadsafe(_schedule)
+        self.logger.info("WeatherFlow web API poller started")
+
+    async def _web_poll_loop(self) -> None:
+        """Async loop: poll the WeatherFlow REST API.
+
+        Interval is adaptive: 60 s when any device is in web-only mode (temperature
+        and all sensor states come from web), 300 s when UDP is active (web only
+        supplements rain totals and conditions — all slow-changing data).
+
+        The 60-second startup delay lets the UDP listener complete its first device
+        discovery cycle so the initial web poll doesn't overwrite freshly arrived
+        UDP data with stale web values.
+        """
+        await asyncio.sleep(60)
+        while True:
+            if not self.pluginPrefs.get("useWebData", False):
+                return
+            api_token = self.pluginPrefs.get("apiToken", "").strip()
+            if not api_token:
+                return
+            try:
+                has_web_only = await self._web_poll_all(api_token)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                self.logger.exception("WeatherFlow web API: unexpected error in poll cycle")
+                has_web_only = False
+            interval = 60 if has_web_only else 300
+            await asyncio.sleep(interval)
+
+    async def _web_poll_all(self, api_token: str) -> bool:
+        """Fetch and apply web obs for every tracked ST- device.
+
+        Returns True if any device was in web-only mode (no active UDP), which
+        signals the caller to use a shorter poll interval.
+
+        Failure tracking: after 3 consecutive failures for a station, polling is
+        suspended and a single warning is logged. Fix the station ID or save the
+        device config to reset the counter.
+        """
+        _SUSPEND_AFTER = 3
+        has_web_only = False
+
+        # --- Web-only devices: iterate Indigo devices directly, no SN needed ---
+        for dev in indigo.devices.iter("self"):
+            if not dev.pluginProps.get("webOnly", False):
+                continue
+            has_web_only = True
+            station_id_str = dev.pluginProps.get("stationId", "").strip()
+            if not station_id_str or not station_id_str.isdigit():
+                continue
+            station_id = int(station_id_str)
+            fail_count = self._station_fail_count.get(station_id, 0)
+            if fail_count >= _SUSPEND_AFTER:
+                continue
+            try:
+                obs, err = await self._fetch_station_obs(station_id, api_token)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                self.logger.exception(
+                    "WeatherFlow web API: unexpected error polling %s (station %d)",
+                    dev.name, station_id,
+                )
+                continue
+            if obs is not None:
+                if fail_count:
+                    self._station_fail_count[station_id] = 0
+                self._on_web_obs(dev.id, obs)
+            else:
+                new_count = fail_count + 1
+                self._station_fail_count[station_id] = new_count
+                if new_count < _SUSPEND_AFTER:
+                    self.logger.warning(
+                        "%s: web API error for station %d — %s", dev.name, station_id, err
+                    )
+                else:
+                    self.logger.warning(
+                        "%s: web API station %d suspended after %d consecutive failures (%s). "
+                        "Edit the device to correct the station ID and resume polling.",
+                        dev.name, station_id, _SUSPEND_AFTER, err,
+                    )
+
+        # --- Non-web-only ST- devices: supplement UDP with web data ---
+        sn_list = [sn for sn in self._serial_to_dev_id if sn.startswith("ST")]
+        if not sn_list:
+            return has_web_only
+
+        missing = [sn for sn in sn_list if sn not in self._station_id_map]
+        if missing:
+            await self._discover_stations(api_token)
+
+        for sn in sn_list:
+            station_id = self._station_id_map.get(sn)
+            if station_id is None:
+                self.logger.debug("%s: station_id not found — check token and account", sn)
+                continue
+            fail_count = self._station_fail_count.get(station_id, 0)
+            if fail_count >= _SUSPEND_AFTER:
+                continue
+            try:
+                obs, err = await self._fetch_station_obs(station_id, api_token)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                self.logger.exception("WeatherFlow web API: unexpected error polling %s", sn)
+                continue
+            if obs is not None:
+                if fail_count:
+                    self._station_fail_count[station_id] = 0
+                dev_id = self._serial_to_dev_id.get(sn)
+                if dev_id is not None:
+                    self._on_web_obs(dev_id, obs)
+            else:
+                new_count = fail_count + 1
+                self._station_fail_count[station_id] = new_count
+                if new_count < _SUSPEND_AFTER:
+                    self.logger.warning(
+                        "%s: web API error for station %d — %s", sn, station_id, err
+                    )
+                else:
+                    self.logger.warning(
+                        "%s: web API station %d suspended after %d consecutive failures (%s). "
+                        "Edit the device to correct the station ID and resume polling.",
+                        sn, station_id, _SUSPEND_AFTER, err,
+                    )
+
+        return has_web_only
+
+    async def _discover_stations(self, api_token: str) -> None:
+        """Map ST- serial numbers to WeatherFlow station IDs via the REST API."""
+        data, err = await self._fetch_json(f"{_WEB_API_BASE}/stations?token={api_token}")
+        if data is None:
+            if err:
+                self.logger.warning("WeatherFlow web API: could not fetch station list — %s", err)
+            return
+        for station in data.get("stations", []):
+            station_id = station.get("station_id")
+            if station_id is None:
+                continue
+            for dev in station.get("devices", []):
+                sn = dev.get("serial_number", "")
+                if sn in self._serial_to_dev_id and sn not in self._station_id_map:
+                    self._station_id_map[sn] = int(station_id)
+                    self.logger.info("%s: mapped to station_id=%d via web API", sn, station_id)
+
+    async def _fetch_station_obs(self, station_id: int, api_token: str) -> tuple[dict | None, str | None]:
+        """Fetch current_conditions from the WeatherFlow better_forecast endpoint.
+
+        Returns (current_conditions dict, error_message). error_message is None on success.
+        """
+        url = (
+            f"{_WEB_API_BASE}/better_forecast"
+            f"?station_id={station_id}&token={api_token}"
+            "&units_temp=c&units_wind=mps&units_pressure=mb&units_precip=mm&units_distance=km"
+        )
+        data, err = await self._fetch_json(url)
+        if data is None:
+            return None, err
+        return data.get("current_conditions"), None
+
+    async def _fetch_json(self, url: str) -> tuple[dict | None, str | None]:
+        """Fetch a JSON endpoint in a thread pool.
+
+        Returns (data, error_message). error_message is None on success so the
+        caller can decide how to log failures (e.g. suppress after repeated errors).
+        """
+        loop = asyncio.get_running_loop()
+        try:
+            def _do_fetch():
+                req = urllib.request.Request(
+                    url, headers={"User-Agent": "WeatherFlow-Indigo/2.0"}
+                )
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    return json.loads(resp.read().decode("utf-8"))
+            return await loop.run_in_executor(None, _do_fetch), None
+        except Exception as ex:
+            return None, str(ex)
+
+    def _on_web_obs(self, dev_id: int, obs: dict) -> None:
+        """Apply a web API current_conditions dict to the matching Indigo device.
+
+        include_standard is True only when no local UDP data is flowing (web-only mode).
+        With active UDP, web updates only states UDP doesn't provide: rain totals
+        (authoritative, rain-check corrected), rain duration, conditions, icon, and
+        hourly lightning counts. All real-time sensor readings (temp, pressure, wind,
+        UV, etc.) are left to the faster UDP path.
+        """
+        dev = indigo.devices.get(dev_id)
+        if dev is None:
+            return
+        unit_prefs = _get_unit_prefs(dev)
+
+        # Respect the explicit web-only flag first — it overrides everything.
+        # A device marked web-only always gets full state from the web API,
+        # regardless of whether UDP happens to be active on the same network.
+        # For non-web-only devices, fall back to checking live UDP activity.
+        if dev.pluginProps.get("webOnly", False):
+            include_standard = True
+        else:
+            sn = dev.pluginProps.get("serialNumber", "")
+            wf_dev = self._discovered.get(sn)
+            udp_active = False
+            if wf_dev is not None:
+                last = getattr(wf_dev, "_last_report", None)
+                udp_active = last is not None and (time.time() - last) < 300
+            include_standard = not udp_active
+
+        states = _build_web_observation_states(obs, unit_prefs, include_standard=include_standard)
+        if not states:
+            return
+
+        if self.logger.isEnabledFor(logging.DEBUG):
+            label = dev.name
+            mode = "web-only (no UDP)" if include_standard else "web supplement (UDP active)"
+            self.logger.debug("%s: web obs — mode=%s, %d states:", label, mode, len(states))
+            for s in states:
+                key = s["key"]
+                current = dev.states.get(key, "<not set>")
+                new_val = s.get("uiValue", s.get("value"))
+                self.logger.debug("%s:   %-38s %r → %r", label, key, current, new_val)
+
+        dev.updateStatesOnServer(states)
 
 
 # =============================================================================
@@ -1348,3 +1666,123 @@ def _add_int(states: list[dict], key: str, value: Any) -> None:
         states.append({"key": key, "value": int(mag)})
     except (TypeError, AttributeError, ValueError):
         pass
+
+
+def _build_web_observation_states(
+    obs: dict,
+    unit_prefs: dict,
+    include_standard: bool = False,
+) -> list[dict]:
+    """Build Indigo state list from a WeatherFlow better_forecast current_conditions dict.
+
+    When include_standard is False (local UDP device is active), only web-exclusive states
+    are written so UDP data is not overwritten. When True (web-only mode), all sensor states
+    are populated from the web response.
+    """
+    states: list[dict] = []
+
+    def _qty(key: str, pint_unit: str):
+        v = obs.get(key)
+        if v is None:
+            return None
+        try:
+            return units.Quantity(float(v), pint_unit)
+        except Exception:
+            return None
+
+    # --- Authoritative rain totals (always update — web data is rain-check corrected) ---
+    rain_today = obs.get("precip_accum_local_day")
+    if rain_today is not None:
+        rain_today_mm = float(rain_today)
+        _add_u(states, "rain_today", rain_today_mm * _UNIT_MM, "rain", unit_prefs)
+        states.append({"key": "rain_today_raw_mm", "value": round(rain_today_mm, 3)})
+        states.append({"key": "rain_today_date", "value": datetime.date.today().isoformat()})
+
+    rain_yesterday = obs.get("precip_accum_local_yesterday")
+    if rain_yesterday is not None:
+        _add_u(states, "rain_yesterday", float(rain_yesterday) * _UNIT_MM, "rain", unit_prefs)
+
+    # Rain last 1 hour
+    rain_1hr = obs.get("precip_accum_last_1hr")
+    if rain_1hr is not None:
+        _add_u(states, "rain_last_1hr", float(rain_1hr) * _UNIT_MM, "rain", unit_prefs)
+
+    # Rain duration (minutes of measurable rain today / yesterday)
+    rd_today = obs.get("precip_minutes_local_day")
+    if rd_today is not None:
+        states.append({"key": "rain_duration_today", "value": int(rd_today)})
+
+    rd_yesterday = obs.get("precip_minutes_local_yesterday")
+    if rd_yesterday is not None:
+        states.append({"key": "rain_duration_yesterday", "value": int(rd_yesterday)})
+
+    # Conditions text and icon name
+    cond = obs.get("conditions")
+    if cond is not None:
+        states.append({"key": "conditions", "value": str(cond)})
+
+    icon = obs.get("icon")
+    if icon is not None:
+        states.append({"key": "weather_icon", "value": str(icon)})
+
+    # Hourly and 3-hour lightning counts
+    lc_1hr = obs.get("lightning_strike_count_last_1hr")
+    if lc_1hr is not None:
+        states.append({"key": "lightning_count_last_1hr", "value": int(lc_1hr)})
+
+    lc_3hr = obs.get("lightning_strike_count_last_3hr")
+    if lc_3hr is not None:
+        states.append({"key": "lightning_count_last_3hr", "value": int(lc_3hr)})
+
+    if not include_standard:
+        return states
+
+    # --- Standard sensor states (web-only mode: no local UDP device) ---
+    _add_u(states, "air_temperature",        _qty("air_temperature",    "degC"), "temp",     unit_prefs)
+    _add_u(states, "temperature",            _qty("air_temperature",    "degC"), "temp",     unit_prefs)
+    _add_u(states, "feels_like_temperature", _qty("feels_like",         "degC"), "temp",     unit_prefs)
+    _add_u(states, "heat_index",             _qty("heat_index",         "degC"), "temp",     unit_prefs)
+    _add_u(states, "wind_chill_temperature", _qty("wind_chill",         "degC"), "temp",     unit_prefs)
+    _add_u(states, "dew_point_temperature",  _qty("dew_point",          "degC"), "temp",     unit_prefs)
+    _add_u(states, "wet_bulb_temperature",   _qty("wet_bulb_temperature","degC"), "temp",    unit_prefs)
+
+    rh = obs.get("relative_humidity")
+    if rh is not None:
+        _add_u(states, "relative_humidity", float(rh), "percent", unit_prefs)
+
+    _add_u(states, "station_pressure",   _qty("station_pressure",  "mbar"), "pressure", unit_prefs)
+    _add_u(states, "sea_level_pressure", _qty("sea_level_pressure","mbar"), "pressure", unit_prefs)
+
+    _add_u(states, "wind_average",           _qty("wind_avg",       "m/s"), "wind",    unit_prefs)
+    _add_u(states, "wind_speed",             _qty("wind_avg",       "m/s"), "wind",    unit_prefs)
+    _add_u(states, "wind_gust",              _qty("wind_gust",      "m/s"), "wind",    unit_prefs)
+    _add_u(states, "wind_lull",              _qty("wind_lull",      "m/s"), "wind",    unit_prefs)
+
+    wind_dir = obs.get("wind_direction")
+    if wind_dir is not None:
+        _add_u(states, "wind_direction",         float(wind_dir), "degrees", unit_prefs)
+        _add_u(states, "wind_direction_average", float(wind_dir), "degrees", unit_prefs)
+        cardinal = _degrees_to_cardinal(float(wind_dir))
+        states.append({"key": "wind_direction_cardinal",         "value": cardinal})
+        states.append({"key": "wind_direction_average_cardinal", "value": cardinal})
+
+    brightness = obs.get("brightness")
+    if brightness is not None:
+        _add_u(states, "illuminance", float(brightness), "lux", unit_prefs)
+
+    solar = obs.get("solar_radiation")
+    if solar is not None:
+        _add_u(states, "solar_radiation", float(solar), "irradiance", unit_prefs)
+
+    uv = obs.get("uv")
+    if uv is not None:
+        _add_u(states, "uv", float(uv), "uv", unit_prefs)
+
+    # Last strike distance and energy from web data
+    lsd = obs.get("lightning_strike_last_distance")
+    if lsd is not None:
+        _add_u(states, "last_strike_distance", _qty("lightning_strike_last_distance", "km"), "distance", unit_prefs)
+
+    states.extend(_build_unit_states(unit_prefs))
+    states.append({"key": "deviceStatus", "value": "Active (web)"})
+    return states
