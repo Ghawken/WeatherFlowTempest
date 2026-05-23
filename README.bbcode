@@ -1,0 +1,371 @@
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/banner.png[/img]
+
+[size=150][b]WeatherFlow Tempest Weather Station — Indigo Plugin[/b][/size]
+
+Receives live weather data from [url=https://weatherflow.com/tempest-weather-system/]WeatherFlow Tempest[/url] stations via [b]local UDP broadcast[/b] and maps all sensor observations to Indigo device states. No cloud account or API key is required. Everything runs on your local network.
+
+Wiki: [url=https://github.com/Ghawken/WeatherFlowTempest/wiki]https://github.com/Ghawken/WeatherFlowTempest/wiki[/url]
+GitHub: [url=https://github.com/Ghawken/WeatherFlowTempest]https://github.com/Ghawken/WeatherFlowTempest[/url]
+
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif[/img]
+
+[size=125][b]Screenshot[/b][/size]
+
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/WeatherFlowStates.png[/img]
+
+[i]Indigo device states for a Tempest Weather Station showing live sensor readings and unit labels.[/i]
+
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif[/img]
+
+[size=125][b]Features[/b][/size]
+
+[list]
+[*][b]Temperature:[/b] Ambient, feels-like, dew point, wet bulb, wind chill, heat index, delta-T
+[*][b]Atmospheric:[/b] Station pressure, sea-level pressure, relative humidity, vapour pressure, air density
+[*][b]Wind:[/b] Instantaneous speed/direction (rapid-wind, ~3 s), 1-minute average, gust, lull, cardinal, sample interval
+[*][b]Rain:[/b] Per-minute accumulation, rain rate, intensity label, daily total, yesterday's total, Rain Check status
+[*][b]Lightning:[/b] Strike count, average distance, last-strike distance, energy and timestamp
+[*][b]Light:[/b] Illuminance (lux), solar radiation (W/m²), UV index
+[*][b]Battery:[/b] Voltage and percentage; power-save mode label; report interval
+[*][b]Derived:[/b] Cloud base, freezing level (both require altitude to be set)
+[*][b]Diagnostics:[/b] RSSI, firmware version, sensor fault flags, silence detection
+[*][b]Hub:[/b] Firmware, Wi-Fi RSSI, uptime, reset reasons
+[/list]
+
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif[/img]
+
+[size=125][b]Requirements[/b][/size]
+
+[list]
+[*][b]Indigo:[/b] 2025.2 or later (ServerApiVersion 3.4)
+[*][b]WeatherFlow hub:[/b] Any — must be on the same subnet as the Indigo Mac
+[/list]
+
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif[/img]
+
+[size=125][b]Quick Start[/b][/size]
+
+[list=1]
+[*]Install the plugin (double-click [b]WeatherFlowTempest.indigoPlugin[/b]).
+[*]Go to [b]Plugins → WeatherFlow Tempest → Configure → Generate Devices[/b].
+[*]Done — states populate within 60 seconds of the first UDP broadcast.
+[/list]
+
+See [url=https://github.com/Ghawken/WeatherFlowTempest/wiki/Installation]Installation wiki page[/url] for full details.
+
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif[/img]
+
+[size=125][b]Installation[/b][/size]
+
+[list=1]
+[*]Download [b]WeatherFlowTempest.indigoPlugin[/b] and double-click it to install.
+[*]Indigo will prompt to enable the plugin — click [b]Enable[/b].
+[*]The plugin begins listening on UDP port [b]50222[/b] immediately. No further configuration is required to start receiving data.
+[/list]
+
+[size=125][b]Device Setup[/b][/size]
+
+[b]Auto-create all devices at once (recommended)[/b]
+
+[list=1]
+[*]Open [b]Plugins → WeatherFlow Tempest Weather Station → Configure[/b].
+[*]Click [b]Generate Devices[/b].
+[*]The plugin creates one Indigo device for every Tempest and Hub currently broadcasting on the network.
+[*]Re-click the button whenever new hardware is added.
+[/list]
+
+[b]Manual device creation[/b]
+
+[list=1]
+[*]Go to [b]Devices → New Device → Type: WeatherFlow Tempest Weather Station[/b].
+[*]Choose [b]Tempest Weather Station[/b] or [b]WeatherFlow Hub[/b].
+[*]Select your unit from the dropdown — devices are listed as soon as the hub broadcasts.
+[*]Click [b]Save[/b].
+[/list]
+
+[quote]Tip: If the device dropdown is empty, the hub has not yet sent a broadcast. Wait 30–60 seconds and use the Reload button in the dialog to refresh the list.[/quote]
+
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif[/img]
+
+[size=125][b]Tempest Device Configuration[/b][/size]
+
+[list]
+[*][b]Tempest Device:[/b] Serial number of the Tempest (ST-xxxxxxxx), discovered automatically
+[*][b]Altitude (m):[/b] Station elevation in metres above sea level. Used to calculate sea-level pressure, cloud base, and freezing level. Set to 0 to omit those derived states.
+[*][b]Units — Temperature:[/b] °C or °F
+[*][b]Units — Pressure:[/b] hPa (mbar), mmHg, or inHg
+[*][b]Units — Wind Speed:[/b] m/s, km/h, mph, or knots
+[*][b]Units — Rain:[/b] mm or inches
+[/list]
+
+Unit selections are independent — mix and match as needed. Changes take effect on the next sensor observation (within ~1 minute). Active unit labels are stored in the [b]unit_temperature[/b], [b]unit_pressure[/b], [b]unit_wind[/b], and [b]unit_rain[/b] device states.
+
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif[/img]
+
+[size=125][b]Device States[/b][/size]
+
+[size=110][b]Tempest Weather Station[/b][/size]
+
+[b]Temperature[/b]
+[list]
+[*][b]air_temperature[/b] — Ambient temperature
+[*][b]feels_like_temperature[/b] — Apparent / feels-like temperature
+[*][b]dew_point_temperature[/b] — Dew point
+[*][b]wet_bulb_temperature[/b] — Wet bulb temperature
+[*][b]wind_chill_temperature[/b] — Wind chill
+[*][b]heat_index[/b] — Heat index
+[*][b]delta_t[/b] — Delta-T (dry bulb minus wet bulb)
+[/list]
+
+[b]Atmospheric[/b]
+[list]
+[*][b]relative_humidity[/b] — Relative humidity (%)
+[*][b]station_pressure[/b] — Raw station pressure
+[*][b]sea_level_pressure[/b] — Sea-level corrected pressure (requires altitude > 0)
+[*][b]vapor_pressure[/b] — Vapour pressure
+[*][b]air_density[/b] — Air density (kg/m³, always metric)
+[/list]
+
+[b]Derived (require altitude > 0)[/b]
+[list]
+[*][b]cloud_base[/b] — Estimated cloud base height above station
+[*][b]freezing_level[/b] — Estimated freezing level height above station
+[/list]
+
+[b]Light & UV[/b]
+[list]
+[*][b]illuminance[/b] — Illuminance (lux)
+[*][b]solar_radiation[/b] — Solar irradiance (W/m²)
+[*][b]uv[/b] — UV index
+[/list]
+
+[b]Rain[/b]
+[list]
+[*][b]rain_accumulation_previous_minute[/b] — Rain accumulated in the previous minute
+[*][b]rain_rate[/b] — Current rain rate (mm/h or in/h)
+[*][b]rain_today[/b] — Total rain since local midnight
+[*][b]rain_yesterday[/b] — Yesterday's total rain
+[*][b]rain_intensity[/b] — None / Very Light / Light / Moderate / Heavy / Violent
+[*][b]rain_check[/b] — WeatherFlow Rain Check verification status (none / on / off)
+[*][b]precipitation_type[/b] — none, rain, hail, or rain_hail
+[*][b]last_rain_start[/b] — Timestamp of the most recent rain-start event (UTC)
+[/list]
+
+[b]Lightning[/b]
+[list]
+[*][b]lightning_strike_count[/b] — Strikes detected in the last 3 minutes
+[*][b]lightning_strike_average_distance[/b] — Average distance of recent strikes
+[*][b]last_strike_distance[/b] — Distance of the most recent strike
+[*][b]last_strike_energy[/b] — Energy of the most recent strike
+[*][b]last_strike_time[/b] — Timestamp of the most recent strike (UTC)
+[/list]
+
+[b]Wind[/b]
+[list]
+[*][b]wind_speed[/b] — Instantaneous wind speed (rapid-wind, ~3 s interval)
+[*][b]wind_average[/b] — 1-minute average wind speed
+[*][b]wind_gust[/b] — 1-minute wind gust
+[*][b]wind_lull[/b] — 1-minute wind lull
+[*][b]wind_direction[/b] — Instantaneous wind direction (°)
+[*][b]wind_direction_average[/b] — 1-minute average wind direction (°)
+[*][b]wind_direction_cardinal[/b] — Instantaneous cardinal direction (N, NE, …)
+[*][b]wind_direction_average_cardinal[/b] — Average cardinal direction
+[*][b]wind_sample_interval[/b] — Wind measurement window (seconds)
+[/list]
+
+[b]Unit Labels[/b]
+[list]
+[*][b]unit_temperature[/b] — Active temperature unit (e.g. °C)
+[*][b]unit_pressure[/b] — Active pressure unit (e.g. hPa)
+[*][b]unit_wind[/b] — Active wind speed unit (e.g. km/h)
+[*][b]unit_rain[/b] — Active rain unit (e.g. mm)
+[/list]
+
+[b]Battery & Power[/b]
+[list]
+[*][b]battery[/b] — Battery voltage (V)
+[*][b]battery_percent[/b] — Battery level (%)
+[*][b]power_save_mode[/b] — Active power-save mode name
+[*][b]report_interval[/b] — Observation reporting frequency (minutes)
+[/list]
+
+[b]Diagnostics[/b]
+[list]
+[*][b]rssi[/b] — Tempest RF signal strength (dBm)
+[*][b]hub_rssi[/b] — Hub RF signal strength (dBm)
+[*][b]firmware_revision[/b] — Tempest firmware version
+[*][b]hub_sn[/b] — Hub serial number
+[*][b]up_since[/b] — Device power-on timestamp (UTC)
+[*][b]last_report[/b] — Timestamp of the most recent observation (UTC)
+[*][b]sensor_status[/b] — Sensor fault flags, or OK
+[*][b]deviceStatus[/b] — Active / Waiting for data / No data — last seen N min ago
+[/list]
+
+[size=110][b]WeatherFlow Hub[/b][/size]
+
+[list]
+[*][b]firmware_revision[/b] — Hub firmware version
+[*][b]rssi[/b] — Hub Wi-Fi signal strength (dBm)
+[*][b]up_since[/b] — Hub power-on timestamp (UTC)
+[*][b]uptime[/b] — Seconds since last boot
+[*][b]reset_flags[/b] — Reason(s) for the last reset (comma-separated)
+[*][b]deviceStatus[/b] — Connection status
+[/list]
+
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif[/img]
+
+[size=125][b]Triggers[/b][/size]
+
+Three custom trigger types are available under [b]Triggers → New Trigger → WeatherFlow Tempest Weather Station[/b].
+
+Each trigger includes a [b]Tempest Device[/b] picker so it can be scoped to a specific station when you have more than one.
+
+[b]Lightning Strike Detected[/b]
+
+Fires whenever the selected Tempest detects a lightning strike. The [b]last_strike_distance[/b], [b]last_strike_energy[/b], and [b]last_strike_time[/b] device states are updated before the trigger fires.
+
+Use cases:
+[list]
+[*]Send a push notification with distance and energy.
+[*]Flash a light or sound an alert.
+[*]Log strikes to a variable for counting.
+[/list]
+
+[b]Rain Started[/b]
+
+Fires when the Tempest detects the onset of precipitation (the first rain-start event after a dry period). The [b]last_rain_start[/b] state is updated when this trigger fires.
+
+[quote]Note: This trigger fires from the Tempest's dedicated rain-start event, which is sent immediately when the sensor detects rain — independent of the 1-minute observation cycle. It fires once per rain onset, not repeatedly while rain continues.[/quote]
+
+Use cases:
+[list]
+[*]Close roof vents or skylights.
+[*]Retract a pergola awning.
+[*]Send a "rain started" notification.
+[/list]
+
+[b]Rapid Wind Exceeds Threshold[/b]
+
+Fires when an instantaneous wind reading meets or exceeds a configurable speed. Rapid-wind readings arrive approximately [b]every 3 seconds[/b], giving near-real-time wind monitoring.
+
+Configuration:
+[list]
+[*][b]Tempest Device:[/b] The Tempest station to watch.
+[*][b]Threshold (m/s):[/b] Minimum wind speed (in m/s) required to fire the trigger.
+[/list]
+
+[quote]The threshold is always compared against the raw m/s magnitude regardless of the display unit set in the device configuration. Convert your target speed if needed: 1 m/s = 3.6 km/h = 2.237 mph = 1.944 kn.[/quote]
+
+Use cases:
+[list]
+[*]Close greenhouse vents above 10 m/s.
+[*]Retract a sail shade above 15 m/s.
+[*]Log wind gusts to a time-stamped variable.
+[/list]
+
+[b]Trigger Limitations[/b]
+[list]
+[*]In power-save MODE_2 and above, rapid-wind events are not sent by the Tempest. The Rapid Wind Exceeds Threshold trigger will not fire in those modes. The [b]wind_speed[/b] state still updates from the 1-minute observation, but at a lower frequency.
+[*]Lightning and rain-start triggers fire from discrete UDP events and are not affected by power-save mode.
+[/list]
+
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif[/img]
+
+[size=125][b]Station Silence Detection[/b][/size]
+
+The plugin monitors each Tempest station for data dropouts. If no observation is received for more than [b]5 minutes[/b]:
+[list]
+[*]The [b]deviceStatus[/b] state is updated to "No data — last seen N min ago", making the outage visible in the Indigo device list without checking logs.
+[*]A warning is written to the Indigo Event Log.
+[*]The warning repeats every [b]30 minutes[/b] for as long as the silence continues, with an updated elapsed time.
+[/list]
+
+When data resumes, [b]deviceStatus[/b] returns to "Active" automatically on the next observation, and a recovery notice is logged.
+
+The plugin also monitors the UDP listener itself. If the background socket task crashes for any reason, the listener is restarted automatically within 60 seconds.
+
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif[/img]
+
+[size=125][b]Plugin Preferences[/b][/size]
+
+Open [b]Plugins → WeatherFlow Tempest Weather Station → Configure[/b].
+
+[list]
+[*][b]Generate Devices:[/b] Auto-create Indigo devices for all discovered WeatherFlow hardware
+[*][b]UDP Port:[/b] Port the hub broadcasts on (default: 50222)
+[*][b]Listen Address:[/b] Network interface to listen on (default: 0.0.0.0 = all interfaces)
+[*][b]Indigo Log Level:[/b] Verbosity of messages in the Indigo Event Log
+[*][b]File Log Level:[/b] Verbosity of messages written to the plugin log file
+[/list]
+
+Saving the preferences automatically restarts the UDP listener.
+
+[size=125][b]Plugin Menu[/b][/size]
+
+[b]Plugins → WeatherFlow Tempest Weather Station[/b] exposes two menu commands:
+[list]
+[*][b]List Discovered WeatherFlow Devices[/b] — logs all currently-discovered serial numbers, models, and firmware versions to the Event Log.
+[*][b]Restart UDP Listener[/b] — stops and restarts the listener without reloading the plugin (useful after network changes).
+[/list]
+
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif[/img]
+
+[size=125][b]Troubleshooting[/b][/size]
+
+[b]Device dropdown is empty / "No devices discovered yet"[/b]
+[list]
+[*]Confirm the WeatherFlow hub is on the same subnet as the Indigo Mac. UDP broadcast does not cross router boundaries.
+[*]Check that nothing is blocking UDP port 50222 (macOS firewall, managed switch, VLAN separation).
+[*]Wait 60 seconds — hubs broadcast a status packet roughly once per minute — then use the [b]Reload[/b] button in the device dialog.
+[/list]
+
+[b]deviceStatus shows "No data — last seen N min ago"[/b]
+[list]
+[*]The station has not sent an observation in over 5 minutes. Check the hub's power and Wi-Fi connection, and confirm the Tempest is within RF range.
+[*]Check the Indigo Event Log for listener errors. Use [b]Plugins → WeatherFlow → Restart UDP Listener[/b] to retry without reloading the plugin.
+[/list]
+
+[b]sea_level_pressure, cloud_base, freezing_level are missing[/b]
+[list]
+[*]Set [b]Altitude (m)[/b] to a non-zero value in the Tempest device configuration.
+[/list]
+
+[b]sensor_status shows all sensors failed[/b]
+[list]
+[*]This is a known reporting quirk in some Tempest firmware versions where the raw hardware register value is broadcast before the sensor self-test completes. The plugin detects this pattern and displays OK instead. If only a subset of sensors are listed as failed, that is a genuine fault.
+[/list]
+
+[b]Debug logging[/b]
+[list]
+[*]Set [b]Indigo Log Level[/b] to Debugging Messages in Plugin Preferences for verbose output in the Event Log.
+[*]The plugin log file is written to ~/Library/Application Support/Perceptive Automation/Indigo 2025.x/Logs/. Set [b]File Log Level[/b] to Detailed Debugging Messages for maximum detail.
+[/list]
+
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif[/img]
+
+[size=125][b]Libraries & Acknowledgements[/b][/size]
+
+[b][url=https://github.com/natekspencer/pyweatherflowudp]pyweatherflowudp[/url] — v1.5.2[/b]
+[i]by Nathan Spencer (@natekspencer)[/i]
+
+The core UDP library that handles all communication with the WeatherFlow hub. It provides an event-based asynchronous interface, parses every WeatherFlow message type (observations, rapid wind, lightning strikes, rain events, device status), and exposes sensor values as typed properties with full unit support.
+
+All derived meteorological calculations in the plugin — dew point, wet bulb temperature, heat index, feels-like temperature, vapour pressure, air density, sea-level pressure, cloud base, and freezing level — are provided by this library.
+
+Licensed under MIT. If you find it useful, consider [url=https://ko-fi.com/natekspencer]supporting Nathan on Ko-fi[/url].
+
+[b][url=https://pint.readthedocs.io/]Pint[/url] — v0.25.3[/b]
+
+Physical quantity handling with units. All sensor values carry their native unit (e.g. metres per second, millibars) and are converted to the user's chosen display unit using Pint's unit registry, ensuring numerically correct conversions.
+
+[b][url=https://github.com/psychrometrics/psychrolib]PsychroLib[/url] — v2.5.0[/b]
+
+Psychrometric calculations used by pyweatherflowudp to derive wet bulb temperature and related humidity metrics from the raw sensor readings.
+
+[img]https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif[/img]
+
+[size=125][b]License[/b][/size]
+
+MIT — see [url=https://github.com/Ghawken/WeatherFlowTempest/blob/main/LICENSE]LICENSE[/url] for details.
+
+Developed by GlennNZ.
