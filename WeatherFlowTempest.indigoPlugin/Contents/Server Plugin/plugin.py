@@ -690,36 +690,41 @@ class Plugin(indigo.PluginBase):
                 )
                 self._rain_date[sn] = today_str
 
-            # Daily rain: prefer the hub's index 18 value (authoritative, resets at local
-            # midnight). In power-save modes (e.g. MODE_2 with low battery) the Tempest
-            # sends shorter obs_st packets (18 elements, indices 0-17 only) that omit index
-            # 18. In that case we fall back to accumulating the per-minute rain_accumulated
-            # values (index 12) ourselves — less precise on restart but correct otherwise.
-            daily_qty = getattr(device, "local_daily_rain_accumulation", None)
-            rain_today_mm: float | None = (
-                float(daily_qty.magnitude)
-                if daily_qty is not None and hasattr(daily_qty, "magnitude")
-                else None
-            )
-            rain_source = "hub"
+            # Daily rain: Sky-type devices only (Sky, Tempest). Air has no rain sensor.
+            # Prefer the hub's index 18 value (authoritative, resets at local midnight).
+            # In power-save modes (e.g. MODE_2 with low battery) the Tempest sends shorter
+            # obs_st packets (18 elements, indices 0-17 only) that omit index 18. In that
+            # case we fall back to accumulating the per-minute rain_accumulated values
+            # (index 12) ourselves — less precise on restart but correct otherwise.
+            rain_today_mm: float | None = None
+            rain_source = "n/a"
 
-            if rain_today_mm is None:
-                # Index 18 absent — accumulate from per-minute values
-                rain_prev_min = getattr(device, "rain_accumulation_previous_minute", None)
-                rain_prev_min_mm = (
-                    float(rain_prev_min.magnitude)
-                    if rain_prev_min is not None and hasattr(rain_prev_min, "magnitude")
-                    else 0.0
+            if isinstance(device, SkySensorType):
+                daily_qty = getattr(device, "local_daily_rain_accumulation", None)
+                rain_today_mm = (
+                    float(daily_qty.magnitude)
+                    if daily_qty is not None and hasattr(daily_qty, "magnitude")
+                    else None
                 )
-                if is_new_day:
-                    prior_mm = 0.0
-                else:
-                    try:
-                        prior_mm = float(dev.states.get("rain_today_raw_mm", 0.0) or 0.0)
-                    except Exception:
+                rain_source = "hub"
+
+                if rain_today_mm is None:
+                    # Index 18 absent — accumulate from per-minute values
+                    rain_prev_min = getattr(device, "rain_accumulation_previous_minute", None)
+                    rain_prev_min_mm = (
+                        float(rain_prev_min.magnitude)
+                        if rain_prev_min is not None and hasattr(rain_prev_min, "magnitude")
+                        else 0.0
+                    )
+                    if is_new_day:
                         prior_mm = 0.0
-                rain_today_mm = prior_mm + rain_prev_min_mm
-                rain_source = "accumulated"
+                    else:
+                        try:
+                            prior_mm = float(dev.states.get("rain_today_raw_mm", 0.0) or 0.0)
+                        except Exception:
+                            prior_mm = 0.0
+                    rain_today_mm = prior_mm + rain_prev_min_mm
+                    rain_source = "accumulated"
 
             # --- Build and push states ---
             altitude_qty = self._get_altitude(dev)
@@ -1129,7 +1134,9 @@ class Plugin(indigo.PluginBase):
     def _start_web_poller(self) -> None:
         """Start (or restart) the background web API polling task."""
         loop = self._event_loop
-        # Always cancel any running task first (handles checkbox being unchecked)
+        # Always cancel any running task first (handles checkbox being unchecked).
+        # Sets _web_poll_task to None synchronously so the outer fast-path check below
+        # doesn't accidentally block the restart when called from closedPrefsConfigUi.
         if self._web_poll_task and not self._web_poll_task.done() and loop:
             loop.call_soon_threadsafe(self._web_poll_task.cancel)
             self._web_poll_task = None
@@ -1142,9 +1149,15 @@ class Plugin(indigo.PluginBase):
         if not loop or not loop.is_running():
             return
         def _schedule():
+            # Inner guard: call_soon_threadsafe queues work without waiting, so two
+            # rapid callers can both pass the outer None-check before either _schedule
+            # runs. The event loop executes _schedule calls serially, so this check
+            # is race-safe.
+            if self._web_poll_task and not self._web_poll_task.done():
+                return
             self._web_poll_task = loop.create_task(self._web_poll_loop())
+            self.logger.info("WeatherFlow web API poller started")
         loop.call_soon_threadsafe(_schedule)
-        self.logger.info("WeatherFlow web API poller started")
 
     async def _web_poll_loop(self) -> None:
         """Async loop: poll the WeatherFlow REST API.
@@ -1328,16 +1341,26 @@ class Plugin(indigo.PluginBase):
     # -------------------------------------------------------------------------
 
     def _start_public_poller(self) -> None:
-        """Start the public station poll task if not already running."""
+        """Start the public station poll task if not already running.
+
+        The guard is checked both here (fast path) and inside _schedule (race-safe).
+        call_soon_threadsafe queues work on the event loop without waiting, so two
+        callers can both pass the outer check before either _schedule runs. The inner
+        check is always on the event loop thread, so it is strictly serial and safe.
+        """
         loop = self._event_loop
         if not loop or not loop.is_running():
             return
         if self._public_poll_task and not self._public_poll_task.done():
-            return  # already running
+            return  # fast path: clearly already running
         def _schedule():
+            # Inner guard: catches the race where startup() and deviceStartComm()
+            # both pass the outer check before either _schedule executes.
+            if self._public_poll_task and not self._public_poll_task.done():
+                return
             self._public_poll_task = loop.create_task(self._public_poll_loop())
+            self.logger.info("WeatherFlow public station poller started")
         loop.call_soon_threadsafe(_schedule)
-        self.logger.info("WeatherFlow public station poller started")
 
     async def _public_poll_loop(self) -> None:
         """Poll all publicTempestStation devices every 120 seconds."""
@@ -1954,32 +1977,33 @@ def _build_observation_states(
     _add_u(states, "solar_radiation", getattr(device, "solar_radiation", None), "irradiance", unit_prefs)
     _add_u(states, "uv",              getattr(device, "uv", None),              "uv",         unit_prefs)
 
-    # --- Rain ---
-    _add_u(states, "rain_accumulation_previous_minute",
-           getattr(device, "rain_accumulation_previous_minute", None), "rain", unit_prefs)
-    _add_u(states, "rain_rate", getattr(device, "rain_rate", None), "rain_rate", unit_prefs)
+    # --- Rain (SkySensorType only: Sky and Tempest have rain sensors; Air does not) ---
+    if isinstance(device, SkySensorType):
+        _add_u(states, "rain_accumulation_previous_minute",
+               getattr(device, "rain_accumulation_previous_minute", None), "rain", unit_prefs)
+        _add_u(states, "rain_rate", getattr(device, "rain_rate", None), "rain_rate", unit_prefs)
 
-    # Rain intensity label derived from rain_rate (always in mm/h from the library)
-    rate_raw = getattr(device, "rain_rate", None)
-    rate_mm_h = float(rate_raw.magnitude) if rate_raw is not None and hasattr(rate_raw, "magnitude") else (float(rate_raw) if rate_raw is not None else None)
-    states.append({"key": "rain_intensity", "value": _rain_intensity(rate_mm_h)})
+        # Rain intensity label derived from rain_rate (always in mm/h from the library)
+        rate_raw = getattr(device, "rain_rate", None)
+        rate_mm_h = float(rate_raw.magnitude) if rate_raw is not None and hasattr(rate_raw, "magnitude") else (float(rate_raw) if rate_raw is not None else None)
+        states.append({"key": "rain_intensity", "value": _rain_intensity(rate_mm_h)})
 
-    # Today's and yesterday's accumulated rain (tracked in plugin; resets at local midnight)
-    if rain_today_mm is not None:
-        _add_u(states, "rain_today", rain_today_mm * _UNIT_MM, "rain", unit_prefs)
-        # Persist the raw mm value so we can resume correctly after a plugin restart
-        states.append({"key": "rain_today_raw_mm", "value": round(rain_today_mm, 3)})
+        # Today's and yesterday's accumulated rain (tracked in plugin; resets at local midnight)
+        if rain_today_mm is not None:
+            _add_u(states, "rain_today", rain_today_mm * _UNIT_MM, "rain", unit_prefs)
+            # Persist the raw mm value so we can resume correctly after a plugin restart
+            states.append({"key": "rain_today_raw_mm", "value": round(rain_today_mm, 3)})
 
-    # Track the date alongside rain_today so midnight rollover survives restarts
-    states.append({"key": "rain_today_date", "value": datetime.date.today().isoformat()})
+        # Track the date alongside rain_today so midnight rollover survives restarts
+        states.append({"key": "rain_today_date", "value": datetime.date.today().isoformat()})
 
-    # Yesterday's total (written once on first observation after midnight)
-    if rain_yesterday_mm is not None:
-        _add_u(states, "rain_yesterday", rain_yesterday_mm * _UNIT_MM, "rain", unit_prefs)
+        # Yesterday's total (written once on first observation after midnight)
+        if rain_yesterday_mm is not None:
+            _add_u(states, "rain_yesterday", rain_yesterday_mm * _UNIT_MM, "rain", unit_prefs)
 
-    _precip_type = getattr(device, "precipitation_type", None)
-    if _precip_type is not None:
-        states.append({"key": "precipitation_type", "value": _precip_type.name.lower()})
+        _precip_type = getattr(device, "precipitation_type", None)
+        if _precip_type is not None:
+            states.append({"key": "precipitation_type", "value": _precip_type.name.lower()})
 
     # --- Lightning ---
     _strike_count = getattr(device, "lightning_strike_count", None)
