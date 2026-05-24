@@ -1422,6 +1422,29 @@ class Plugin(indigo.PluginBase):
         dev = indigo.devices.get(dev_id)
         if dev is None:
             return
+
+        # Age-gate: public endpoint returns obs[0]["timestamp"] (Unix epoch).
+        # Reject observations older than 10 minutes — stale cached values are
+        # worse than leaving the last-good data in place.
+        _MAX_OBS_AGE_SECS = 600
+        obs_list = data.get("obs", [])
+        obs_ts = obs_list[0].get("timestamp") if obs_list else None
+        if obs_ts is not None:
+            try:
+                obs_age_secs = time.time() - int(obs_ts)
+                self.logger.debug(
+                    "%s: public observation age %.0f s (%.1f min)",
+                    dev.name, obs_age_secs, obs_age_secs / 60,
+                )
+                if obs_age_secs > _MAX_OBS_AGE_SECS:
+                    self.logger.warning(
+                        "%s: public observation is %.0f min old (timestamp=%s) — skipping update",
+                        dev.name, obs_age_secs / 60, obs_ts,
+                    )
+                    return
+            except (TypeError, ValueError):
+                pass
+
         try:
             ll = indigo.server.getLatitudeAndLongitude()
             indigo_lat: float | None = float(ll[0]) if ll[0] is not None else None
@@ -1447,6 +1470,28 @@ class Plugin(indigo.PluginBase):
         if dev is None:
             return
         unit_prefs = _get_unit_prefs(dev)
+
+        # Age-gate: reject stale web observations regardless of mode.
+        # When a station goes offline, WeatherFlow's API keeps returning its last
+        # cached values indefinitely. Pushing 1-hour-old sensor data is worse than
+        # leaving the last-known-good UDP values in place.
+        _MAX_OBS_AGE_SECS = 600  # 10 minutes
+        obs_time = obs.get("time")
+        if obs_time is not None:
+            try:
+                obs_age_secs = time.time() - int(obs_time)
+                self.logger.debug(
+                    "%s: web observation age %.0f s (%.1f min)",
+                    dev.name, obs_age_secs, obs_age_secs / 60,
+                )
+                if obs_age_secs > _MAX_OBS_AGE_SECS:
+                    self.logger.warning(
+                        "%s: web observation is %.0f min old (obs_time=%s) — skipping update",
+                        dev.name, obs_age_secs / 60, obs_time,
+                    )
+                    return
+            except (TypeError, ValueError):
+                pass
 
         # Respect the explicit web-only flag first — it overrides everything.
         # A device marked web-only always gets full state from the web API,
