@@ -45,15 +45,19 @@ The `stateListOrDisplayStateIdChanged()` call in the offline-recovery path has b
 
 **Scope:** All state update paths use the helper: UDP observation, status update, rapid wind, lightning strike, hub status, web observation, and public station observation.
 
-**Log output when a missing key is detected and registered:**
+**Log output when a missing key is detected and registered (normal case):**
 ```
 Debug: Tempest Weather: state keys not yet registered ['last_strike_distance', 'last_strike_energy'] — refreshing state list
 ```
 
-**Log output when a legacy key is filtered out (old plugin state, no longer in Devices.xml):**
+After this log, `stateListOrDisplayStateIdChanged()` re-reads Devices.xml, the keys are registered, and the states are written normally. No data is lost.
+
+**Log output when a key is filtered out:**
 ```
-Debug: Tempest Weather: skipping 1 legacy/undefined state(s): ['last_strike_formatted']
+Debug: Tempest Weather: skipping 1 legacy/undefined state(s): ['old_removed_key']
 ```
+
+This only fires for state keys that are **not in Devices.xml at all** — i.e., state names that have been completely removed from the plugin in a prior version, but whose names remain stored in an old device's Indigo database. If the plugin is actively writing a key, it is defined in Devices.xml and will be registered by `stateListOrDisplayStateIdChanged()`, not skipped.
 
 <img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
