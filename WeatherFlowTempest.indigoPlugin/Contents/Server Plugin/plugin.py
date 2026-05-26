@@ -737,7 +737,7 @@ class Plugin(indigo.PluginBase):
                 rain_yesterday_mm=rain_yesterday_mm,
             )
             if states:
-                dev.updateStatesOnServer(states)
+                self._safe_update_states(dev, states)
 
             _t = getattr(device, "air_temperature", None)
             _h = getattr(device, "relative_humidity", None)
@@ -769,7 +769,7 @@ class Plugin(indigo.PluginBase):
             )
             states = _build_status_states(device)
             if states:
-                dev.updateStatesOnServer(states)
+                self._safe_update_states(dev, states)
         except Exception:
             self.logger.exception("%s: error in status-update handler", device.serial_number)
 
@@ -781,7 +781,7 @@ class Plugin(indigo.PluginBase):
             unit_prefs = _get_unit_prefs(dev)
             states = _build_wind_states(device, unit_prefs)
             if states:
-                dev.updateStatesOnServer(states)
+                self._safe_update_states(dev, states)
             # Threshold comparison always uses raw m/s magnitude
             speed_ms = (
                 float(device.wind_speed.magnitude) if device.wind_speed is not None else 0.0
@@ -810,7 +810,7 @@ class Plugin(indigo.PluginBase):
                 if event.timestamp:
                     states.append({"key": "last_strike_time", "value": str(event.timestamp)})
             if states:
-                dev.updateStatesOnServer(states)
+                self._safe_update_states(dev, states)
             self._check_triggers("lightningStrike", dev.id)
             self.logger.debug("%s: lightning strike", device.serial_number)
         except Exception:
@@ -850,13 +850,49 @@ class Plugin(indigo.PluginBase):
                 states.append({"key": "reset_flags", "value": flag_str})
             if states:
                 states.append({"key": "deviceStatus", "value": "Active"})
-                dev.updateStatesOnServer(states)
+                self._safe_update_states(dev, states)
         except Exception:
             self.logger.exception("%s: error in hub-status handler", device.serial_number)
 
     # -------------------------------------------------------------------------
     # Helpers
     # -------------------------------------------------------------------------
+
+    def _safe_update_states(self, dev, states: list[dict]) -> None:
+        """Write states to an Indigo device, auto-registering any missing keys first.
+
+        Dynamic states (created by strike events, first UDP observation, etc.) may
+        not yet be registered on a device that was offline at startup or has just
+        recovered. This helper:
+
+        1. Checks whether every key in `states` is present in dev.states.
+        2. If any are absent, calls stateListOrDisplayStateIdChanged() so Indigo
+           re-reads Devices.xml and registers any newly-defined states.
+        3. Re-fetches the device so dev.states is current.
+        4. Filters out keys that are *still* absent after the sync (these are
+           legacy state names from an older plugin version that no longer exist
+           in Devices.xml — they cannot be written and the errors are suppressed).
+        5. Calls updateStatesOnServer with the valid, filtered list.
+        """
+        missing = [s["key"] for s in states if s["key"] not in dev.states]
+        if missing:
+            self.logger.debug(
+                "%s: state keys not yet registered %s — refreshing state list",
+                dev.name, missing,
+            )
+            dev.stateListOrDisplayStateIdChanged()
+            dev = indigo.devices.get(dev.id)
+            if dev is None:
+                return
+            still_missing = [k for k in missing if k not in dev.states]
+            if still_missing:
+                self.logger.debug(
+                    "%s: skipping %d legacy/undefined state(s): %s",
+                    dev.name, len(still_missing), still_missing,
+                )
+            states = [s for s in states if s["key"] in dev.states]
+        if states:
+            dev.updateStatesOnServer(states)
 
     def _get_indigo_dev(self, serial_number: str):
         dev_id = self._serial_to_dev_id.get(serial_number)
@@ -942,7 +978,7 @@ class Plugin(indigo.PluginBase):
                 states = _build_observation_states(wf_dev, altitude_qty, unit_prefs)
                 states.extend(_build_status_states(wf_dev))
                 if states:
-                    device.updateStatesOnServer(states)
+                    self._safe_update_states(device, states)
             elif isinstance(wf_dev, HubDevice):
                 self._on_hub_status(wf_dev)
 
@@ -1550,7 +1586,7 @@ class Plugin(indigo.PluginBase):
         if not states:
             return
         self.logger.debug("%s: public obs — %d states updated", dev.name, len(states))
-        dev.updateStatesOnServer(states)
+        self._safe_update_states(dev, states)
 
     def _on_web_obs(self, dev_id: int, obs: dict) -> None:
         """Apply a web API current_conditions dict to the matching Indigo device.
@@ -1628,15 +1664,26 @@ class Plugin(indigo.PluginBase):
             dev.setErrorStateOnServer(error_msg)
             return
 
-        # Data is fresh — clear stale tracker and any Indigo error state
+        # Data is fresh — clear stale tracker and any Indigo error state.
+        # On recovery, force include_standard=True so all states are pushed
+        # immediately rather than waiting for the next UDP observation cycle.
+        # State-list reconciliation is handled lazily by _safe_update_states:
+        # it calls stateListOrDisplayStateIdChanged() only when a specific key
+        # is found to be missing, avoiding spurious "not defined" errors that
+        # appeared when the whole list was synced up-front.
+        recovering = dev_id in self._web_stale_since
         self._web_stale_since.pop(dev_id, None)
+        if recovering:
+            self.logger.info("%s: station recovered — resuming state updates", dev.name)
         dev.setErrorStateOnServer(None)
 
         # Respect the explicit web-only flag first — it overrides everything.
         # A device marked web-only always gets full state from the web API,
         # regardless of whether UDP happens to be active on the same network.
         # For non-web-only devices, fall back to checking live UDP activity.
-        if dev.pluginProps.get("webOnly", False):
+        # On recovery from offline/stale, force include_standard so all states
+        # are pushed immediately without waiting for the next UDP observation.
+        if recovering or dev.pluginProps.get("webOnly", False):
             include_standard = True
         else:
             sn = dev.pluginProps.get("serialNumber", "")
@@ -1661,7 +1708,7 @@ class Plugin(indigo.PluginBase):
                 new_val = s.get("uiValue", s.get("value"))
                 self.logger.debug("%s:   %-38s %r → %r", label, key, current, new_val)
 
-        dev.updateStatesOnServer(states)
+        self._safe_update_states(dev, states)
 
 
 # =============================================================================
