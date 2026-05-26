@@ -10,6 +10,7 @@ All notable changes to the WeatherFlow Tempest plugin are listed here. Each rele
 
 | Version | Date | Summary |
 |---|---|---|
+| [**2.5.2**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.2) | 2026-05-26 | Personal station offline detection rewritten using `/observations/stn`; device turns red in UI after 10 min stale, marked Offline after 30 min |
 | [**2.5.1**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.1) | 2026-05-24 | Bug fixes — stale web data rejected after 10 minutes, Air device rain state errors resolved, duplicate polling on startup fixed |
 | [**2.5.0**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.0) | 2026-05-23 | Public Tempest Station device type — monitor any public WeatherFlow station, distance and direction states, unlimited stations for a weather network |
 | [**2.0.2**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.0.2) | 2026-05-23 | WeatherFlow Web API integration, web-only mode for remote hubs, nine new device states, comprehensive wiki documentation |

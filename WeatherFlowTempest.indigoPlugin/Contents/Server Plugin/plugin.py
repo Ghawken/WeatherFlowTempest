@@ -290,6 +290,8 @@ class Plugin(indigo.PluginBase):
         # Public station poller (separate task, no personal token)
         self._public_poll_task: asyncio.Task | None = None
         self._public_fail_count: dict[int, int] = {}
+        # dev_id -> epoch when data first became stale (cleared on good update)
+        self._web_stale_since: dict[int, float] = {}
 
     # -------------------------------------------------------------------------
     # Plugin lifecycle
@@ -881,6 +883,11 @@ class Plugin(indigo.PluginBase):
         # in plugin updates without requiring the user to delete/recreate devices.
         device.stateListOrDisplayStateIdChanged()
 
+        # Clear any error state left over from a previous run (e.g. plugin crash,
+        # station offline at last shutdown). Each device path sets it fresh if needed.
+        device.setErrorStateOnServer(None)
+        self._web_stale_since.pop(device.id, None)
+
         # Public station: polls the WeatherFlow public API, no personal token needed.
         if device.deviceTypeId == "publicTempestStation":
             station_id_str = device.pluginProps.get("stationId", "").strip()
@@ -1306,7 +1313,23 @@ class Plugin(indigo.PluginBase):
     async def _fetch_station_obs(self, station_id: int, api_token: str) -> tuple[dict | None, str | None]:
         """Fetch current_conditions from the WeatherFlow better_forecast endpoint.
 
-        Returns (current_conditions dict, error_message). error_message is None on success.
+        Also fetches /observations/stn/{id}?api_key=&bucket=1 to check device status.
+        better_forecast.station.is_station_online is always True even with a flat
+        battery — it cannot be used for offline detection.  /observations/stn returns
+        obs:[] when the device has no recent observations, which is the definitive
+        offline signal.  bucket=1 requests the latest 1-minute record only.
+        The /diagnostics endpoint has richer data but requires a partner API key.
+
+        Injects into the returned current_conditions dict:
+            _obs_timestamp    — timestamp from obs[0] when station is online
+            _station_offline  — True when obs list is empty (device offline)
+            _station_status_message — status_message from the obs response
+
+        If the /observations/stn call fails (network error) neither key is injected
+        and the update proceeds — transient errors should not block updates.
+
+        Returns (augmented current_conditions dict, error_message).
+        error_message is None on success.
         """
         url = (
             f"{_WEB_API_BASE}/better_forecast"
@@ -1316,7 +1339,56 @@ class Plugin(indigo.PluginBase):
         data, err = await self._fetch_json(url)
         if data is None:
             return None, err
-        return data.get("current_conditions"), None
+
+        cc = data.get("current_conditions") or {}
+
+        # --- Check /observations/stn to detect whether the device is online ---
+        # Uses the documented personal station observations endpoint with the user's
+        # own api_key token. bucket=1 returns just the latest observation record.
+        # When the station is offline, obs:[] is returned — the definitive offline
+        # signal. better_forecast.station.is_station_online cannot be used (always
+        # True even with flat battery). /diagnostics requires a partner key.
+        #
+        # If this call fails (network error), leave markers absent and fall through —
+        # transient errors should not block all web updates.
+        obs_url = (
+            f"{_WEB_API_BASE}/observations/stn/{station_id}"
+            f"?api_key={api_token}&bucket=1"
+        )
+        obs_data, obs_err = await self._fetch_json(obs_url)
+        if obs_data is not None:
+            obs_list = obs_data.get("obs", [])
+            ob_fields = obs_data.get("ob_fields", [])
+            status = obs_data.get("status", {})
+            self.logger.debug(
+                "station %d: /observations/stn status=%s  obs count=%d",
+                station_id, status, len(obs_list),
+            )
+            if not obs_list:
+                # Station is offline — no observations returned
+                cc["_station_offline"] = True
+                cc["_station_status_message"] = status.get("status_message", "")
+            else:
+                # obs is a positional array; ob_fields names the columns.
+                # "timestamp" is always the first field but look it up to be safe.
+                # Use obs[-1] (last/most recent record) in case bucket=1 returns
+                # multiple records for the current day.
+                ts_idx = ob_fields.index("timestamp") if "timestamp" in ob_fields else 0
+                latest = obs_list[-1]
+                if latest and len(latest) > ts_idx:
+                    real_ts = latest[ts_idx]
+                    if real_ts is not None:
+                        cc["_obs_timestamp"] = int(real_ts)
+                        self.logger.debug(
+                            "station %d: obs[%d] timestamp=%d (age %.0f s)",
+                            station_id, len(obs_list) - 1, real_ts, time.time() - int(real_ts),
+                        )
+        else:
+            self.logger.debug(
+                "station %d: could not fetch /observations/stn — %s", station_id, obs_err
+            )
+
+        return cc, None
 
     async def _fetch_json(self, url: str) -> tuple[dict | None, str | None]:
         """Fetch a JSON endpoint in a thread pool.
@@ -1494,27 +1566,71 @@ class Plugin(indigo.PluginBase):
             return
         unit_prefs = _get_unit_prefs(dev)
 
-        # Age-gate: reject stale web observations regardless of mode.
-        # When a station goes offline, WeatherFlow's API keeps returning its last
-        # cached values indefinitely. Pushing 1-hour-old sensor data is worse than
-        # leaving the last-known-good UDP values in place.
-        _MAX_OBS_AGE_SECS = 600  # 10 minutes
-        obs_time = obs.get("time")
-        if obs_time is not None:
-            try:
-                obs_age_secs = time.time() - int(obs_time)
-                self.logger.debug(
-                    "%s: web observation age %.0f s (%.1f min)",
-                    dev.name, obs_age_secs, obs_age_secs / 60,
-                )
-                if obs_age_secs > _MAX_OBS_AGE_SECS:
-                    self.logger.warning(
-                        "%s: web observation is %.0f min old (obs_time=%s) — skipping update",
-                        dev.name, obs_age_secs / 60, obs_time,
+        # --- Staleness / offline gate ---
+        # /observations/stn returns obs:[] when the device is offline. better_forecast
+        # keeps serving stale cached data indefinitely and reports is_station_online=True
+        # even with a flat battery — it cannot be used for offline detection.
+        #
+        # Two thresholds:
+        #   > 10 minutes stale  → reject update, mark deviceStatus = "Stale data"
+        #   > 30 minutes stale  → reject update, mark deviceStatus = "Offline"
+        #
+        # Staleness duration is tracked by _web_stale_since[dev_id], set on first
+        # detection and cleared when a good update succeeds.
+        _STALE_SECS   = 600   # 10 minutes
+        _OFFLINE_SECS = 1800  # 30 minutes
+
+        now = time.time()
+        data_age: float | None = None   # seconds since last good observation
+
+        if obs.get("_station_offline"):
+            # No observations at all — station is confirmed offline.
+            # We don't have a real observation timestamp so use _web_stale_since to
+            # measure how long we have been in this state.
+            status_msg = obs.get("_station_status_message", "")
+            if dev_id not in self._web_stale_since:
+                self._web_stale_since[dev_id] = now
+            data_age = now - self._web_stale_since[dev_id]
+            self.logger.warning(
+                "%s: station offline — no recent observations%s (stale %.0f min)",
+                dev.name,
+                f" ({status_msg})" if status_msg else "",
+                data_age / 60,
+            )
+        else:
+            real_ts = obs.get("_obs_timestamp")
+            if real_ts is not None:
+                try:
+                    data_age = now - int(real_ts)
+                    self.logger.debug(
+                        "%s: web observation age %.0f s (%.1f min)",
+                        dev.name, data_age, data_age / 60,
                     )
-                    return
-            except (TypeError, ValueError):
-                pass
+                    if data_age > _STALE_SECS:
+                        if dev_id not in self._web_stale_since:
+                            self._web_stale_since[dev_id] = now - data_age
+                        self.logger.warning(
+                            "%s: web observation is %.0f min old (obs_timestamp=%s)",
+                            dev.name, data_age / 60, real_ts,
+                        )
+                except (TypeError, ValueError):
+                    data_age = None
+
+        if data_age is not None and data_age > _STALE_SECS:
+            # Determine severity based on total stale duration
+            stale_duration = now - self._web_stale_since.get(dev_id, now - data_age)
+            if stale_duration >= _OFFLINE_SECS:
+                error_msg = "Offline"
+            else:
+                error_msg = "Stale data"
+            # Update deviceStatus string and set Indigo device error state (turns red in UI)
+            dev.updateStatesOnServer([{"key": "deviceStatus", "value": error_msg}])
+            dev.setErrorStateOnServer(error_msg)
+            return
+
+        # Data is fresh — clear stale tracker and any Indigo error state
+        self._web_stale_since.pop(dev_id, None)
+        dev.setErrorStateOnServer(None)
 
         # Respect the explicit web-only flag first — it overrides everything.
         # A device marked web-only always gets full state from the web API,
