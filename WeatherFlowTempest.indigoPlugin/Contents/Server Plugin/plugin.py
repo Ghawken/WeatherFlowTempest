@@ -1829,7 +1829,8 @@ def _build_public_obs_states(
     _pub_state(states, "feels_like_temperature", obs.get("feels_like"),           1, t_sym)
     _pub_state(states, "heat_index",             obs.get("heat_index"),           1, t_sym)
     _pub_state(states, "wind_chill_temperature", obs.get("wind_chill"),           1, t_sym)
-    _pub_state(states, "delta_t",                obs.get("delta_t"),              1, "Δ°C")
+    _dt_sym = "Δ°F" if unit_prefs.get("temp") == "fahrenheit" else "Δ°C"
+    _pub_state(states, "delta_t",                obs.get("delta_t"),              1, _dt_sym)
     _pub_state(states, "air_density",            obs.get("air_density"),          3, "kg/m³")
 
     # --- Atmospheric ---
@@ -1938,6 +1939,10 @@ _UNIT_SPECS: dict[tuple, tuple] = {
     ("wind",  "knots"): ("kn",   1, None,  1.94384),
     ("wind",  "mph"):   ("mph",  1, "mph", None),
 
+    # Temperature differential (delta_t) — ×1.8 to convert Δ°C→Δ°F; no +32 offset
+    ("delta_t", "celsius"):    ("Δ°C", 1, None, None),
+    ("delta_t", "fahrenheit"): ("Δ°F", 1, None, 1.8),
+
     # Rainfall
     ("rain",      "mm"):   ("mm",   2, None,   None),
     ("rain",      "inch"): ("in",   3, "inch", None),
@@ -1964,7 +1969,6 @@ _FIXED_SPECS: dict[str, tuple] = {
     "dbm":        ("dBm",   0),
     "degrees":    ("°",     1),
     "uv":         ("UV",    1),
-    "delta_t":    ("Δ°C",   1),   # temperature differential — stays in °C
     "count":      ("",      0),
     "seconds":    ("s",     0),
     "minutes":    ("min",   0),
@@ -1972,6 +1976,7 @@ _FIXED_SPECS: dict[str, tuple] = {
 
 _DEFAULT_UNIT_IDS: dict[str, str] = {
     "temp":      "celsius",
+    "delta_t":   "celsius",
     "pressure":  "hpa",
     "wind":      "ms",
     "rain":      "mm",
@@ -2006,13 +2011,15 @@ def _get_unit_prefs(dev) -> dict:
     props = dev.pluginProps
     legacy_imperial = props.get("unitSystem", "metric") == "imperial"
     rain_unit = props.get("rainUnit", "inch" if legacy_imperial else "mm")
+    temp_unit = props.get("tempUnit", "fahrenheit" if legacy_imperial else "celsius")
     return {
-        "temp":      props.get("tempUnit",     "fahrenheit" if legacy_imperial else "celsius"),
-        "pressure":  props.get("pressureUnit", "inhg"       if legacy_imperial else "hpa"),
-        "wind":      props.get("windUnit",     "mph"        if legacy_imperial else "ms"),
+        "temp":      temp_unit,
+        "delta_t":   temp_unit,   # differential — same C/F preference as absolute temp
+        "pressure":  props.get("pressureUnit", "inhg" if legacy_imperial else "hpa"),
+        "wind":      props.get("windUnit",     "mph"  if legacy_imperial else "ms"),
         "rain":      rain_unit,
         "rain_rate": rain_unit,
-        "alt":       props.get("altUnit",      "ft"         if legacy_imperial else "m"),
+        "alt":       props.get("altUnit",      "ft"   if legacy_imperial else "m"),
         "distance":  "km",
     }
 
@@ -2109,7 +2116,15 @@ def _build_observation_states(
     _add_u(states, "temperature",            getattr(device, "air_temperature", None),       "temp",    unit_prefs)
     _add_u(states, "dew_point_temperature",  getattr(device, "dew_point_temperature", None), "temp",    unit_prefs)
     _add_u(states, "wet_bulb_temperature",   getattr(device, "wet_bulb_temperature", None),  "temp",    unit_prefs)
-    _add_u(states, "heat_index",             getattr(device, "heat_index", None),            "temp",    unit_prefs)
+    _hi = getattr(device, "heat_index", None)
+    if _hi is not None:
+        _add_u(states, "heat_index", _hi, "temp", unit_prefs)
+    else:
+        # heat_index conditions not met (temp < 80 °F or rh < 40 %) — write an explicit
+        # zero so any stale Celsius reading is cleared when temperature units change.
+        _hi_spec = _UNIT_SPECS.get(("temp", unit_prefs.get("temp", "celsius")))
+        _hi_sym  = _hi_spec[0] if _hi_spec else "°C"
+        states.append({"key": "heat_index", "value": 0, "uiValue": f"0 {_hi_sym}"})
     _add_u(states, "delta_t",               getattr(device, "delta_t", None),               "delta_t", unit_prefs)
 
     if isinstance(device, TempestDevice):
