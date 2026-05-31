@@ -670,7 +670,7 @@ class Plugin(indigo.PluginBase):
                     pass
                 if stored_date and stored_date != today_str:
                     try:
-                        rain_yesterday_mm = float(dev.states.get("rain_today_raw_mm", 0.0) or 0.0)
+                        rain_yesterday_mm = float(dev.states.get("rain_today_local_raw_mm", 0.0) or 0.0)
                     except Exception:
                         rain_yesterday_mm = 0.0
                     is_new_day = True
@@ -682,7 +682,7 @@ class Plugin(indigo.PluginBase):
             elif prev_date != today_str:
                 # Day rolled over while the plugin was running
                 try:
-                    rain_yesterday_mm = float(dev.states.get("rain_today_raw_mm", 0.0) or 0.0)
+                    rain_yesterday_mm = float(dev.states.get("rain_today_local_raw_mm", 0.0) or 0.0)
                 except Exception:
                     rain_yesterday_mm = 0.0
                 is_new_day = True
@@ -711,7 +711,9 @@ class Plugin(indigo.PluginBase):
                 rain_source = "hub"
 
                 if rain_today_mm is None:
-                    # Index 18 absent — accumulate from per-minute values
+                    # Index 18 absent — accumulate from per-minute values.
+                    # Use rain_today_local_raw_mm as the baseline so the web API
+                    # writing to rain_today_raw_mm cannot corrupt the running total.
                     rain_prev_min = getattr(device, "rain_accumulation_previous_minute", None)
                     rain_prev_min_mm = (
                         float(rain_prev_min.magnitude)
@@ -722,7 +724,7 @@ class Plugin(indigo.PluginBase):
                         prior_mm = 0.0
                     else:
                         try:
-                            prior_mm = float(dev.states.get("rain_today_raw_mm", 0.0) or 0.0)
+                            prior_mm = float(dev.states.get("rain_today_local_raw_mm", 0.0) or 0.0)
                         except Exception:
                             prior_mm = 0.0
                     rain_today_mm = prior_mm + rain_prev_min_mm
@@ -735,6 +737,7 @@ class Plugin(indigo.PluginBase):
                 device, altitude_qty, unit_prefs,
                 rain_today_mm=rain_today_mm,
                 rain_yesterday_mm=rain_yesterday_mm,
+                rain_source=rain_source,
             )
             if states:
                 self._safe_update_states(dev, states)
@@ -2095,6 +2098,7 @@ def _build_observation_states(
     unit_prefs: dict | None = None,
     rain_today_mm: float | None = None,
     rain_yesterday_mm: float | None = None,
+    rain_source: str = "",
 ) -> list[dict]:
     if unit_prefs is None:
         unit_prefs = {}
@@ -2151,18 +2155,29 @@ def _build_observation_states(
         rate_mm_h = float(rate_raw.magnitude) if rate_raw is not None and hasattr(rate_raw, "magnitude") else (float(rate_raw) if rate_raw is not None else None)
         states.append({"key": "rain_intensity", "value": _rain_intensity(rate_mm_h)})
 
-        # Today's and yesterday's accumulated rain (tracked in plugin; resets at local midnight)
+        # Local rain totals — UDP path only.  The web API never writes these states.
+        # rain_today_local / rain_today_local_raw_mm are the raw device values (not
+        # rain-check corrected).  rain_today_local_raw_mm is also the accumulation
+        # baseline for fallback mode and the midnight-rollover capture source.
+        # rain_today / rain_today_raw_mm / rain_yesterday are written exclusively by
+        # the web API path so they always show the rain-check corrected totals.
         if rain_today_mm is not None:
-            _add_u(states, "rain_today", rain_today_mm * _UNIT_MM, "rain", unit_prefs)
-            # Persist the raw mm value so we can resume correctly after a plugin restart
-            states.append({"key": "rain_today_raw_mm", "value": round(rain_today_mm, 3)})
+            _add_u(states, "rain_today_local", rain_today_mm * _UNIT_MM, "rain", unit_prefs)
+            states.append({"key": "rain_today_local_raw_mm", "value": round(rain_today_mm, 3)})
 
-        # Track the date alongside rain_today so midnight rollover survives restarts
+        # Track the date so midnight rollover detection survives restarts
         states.append({"key": "rain_today_date", "value": datetime.date.today().isoformat()})
 
-        # Yesterday's total (written once on first observation after midnight)
+        # Local source indicator: "hub" (index 18, authoritative) or
+        # "accumulated" (per-minute fallback when hub omits index 18, e.g. power-save mode).
+        # Web never writes this state — it only reflects the local device path.
+        if rain_source:
+            states.append({"key": "rain_today_source", "value": rain_source})
+
+        # Local yesterday (captured from rain_today_local_raw_mm at midnight rollover).
+        # rain_yesterday is written exclusively by the web API.
         if rain_yesterday_mm is not None:
-            _add_u(states, "rain_yesterday", rain_yesterday_mm * _UNIT_MM, "rain", unit_prefs)
+            _add_u(states, "rain_yesterday_local", rain_yesterday_mm * _UNIT_MM, "rain", unit_prefs)
 
         _precip_type = getattr(device, "precipitation_type", None)
         if _precip_type is not None:
@@ -2284,12 +2299,18 @@ def _build_web_observation_states(
             return None
 
     # --- Authoritative rain totals (always update — web data is rain-check corrected) ---
+    # Web writes rain_today / rain_today_raw_mm / rain_yesterday (display / best values).
+    # rain_today / rain_today_raw_mm / rain_yesterday are written ONLY here (web path).
+    # They always contain rain-check corrected totals from the WeatherFlow API.
+    # The web path deliberately does NOT write:
+    #   rain_today_local / rain_today_local_raw_mm / rain_yesterday_local / rain_today_source
+    # Those are owned exclusively by the UDP path.
     rain_today = obs.get("precip_accum_local_day")
     if rain_today is not None:
         rain_today_mm = float(rain_today)
         _add_u(states, "rain_today", rain_today_mm * _UNIT_MM, "rain", unit_prefs)
         states.append({"key": "rain_today_raw_mm", "value": round(rain_today_mm, 3)})
-        states.append({"key": "rain_today_date", "value": datetime.date.today().isoformat()})
+        states.append({"key": "rain_today_date",   "value": datetime.date.today().isoformat()})
 
     rain_yesterday = obs.get("precip_accum_local_yesterday")
     if rain_yesterday is not None:
