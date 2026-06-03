@@ -142,7 +142,7 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 			<!-- Primary weather measurements -->
 			<State id="air_temperature">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Air Temperature (°C)</TriggerLabel>
+				<TriggerLabel>Air Temperature</TriggerLabel>
 				<ControlPageLabel>Air Temp °C</ControlPageLabel>
 			</State>
 			<State id="temperature">
@@ -152,32 +152,32 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 			</State>
 			<State id="dew_point_temperature">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Dew Point Temperature (°C)</TriggerLabel>
+				<TriggerLabel>Dew Point Temperature</TriggerLabel>
 				<ControlPageLabel>Dew Point °C</ControlPageLabel>
 			</State>
 			<State id="wet_bulb_temperature">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Wet Bulb Temperature (°C)</TriggerLabel>
+				<TriggerLabel>Wet Bulb Temperature</TriggerLabel>
 				<ControlPageLabel>Wet Bulb °C</ControlPageLabel>
 			</State>
 			<State id="feels_like_temperature">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Feels Like Temperature (°C)</TriggerLabel>
+				<TriggerLabel>Feels Like Temperature</TriggerLabel>
 				<ControlPageLabel>Feels Like °C</ControlPageLabel>
 			</State>
 			<State id="wind_chill_temperature">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Chill Temperature (°C)</TriggerLabel>
+				<TriggerLabel>Wind Chill Temperature</TriggerLabel>
 				<ControlPageLabel>Wind Chill °C</ControlPageLabel>
 			</State>
 			<State id="heat_index">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Heat Index (°C)</TriggerLabel>
+				<TriggerLabel>Heat Index</TriggerLabel>
 				<ControlPageLabel>Heat Index °C</ControlPageLabel>
 			</State>
 			<State id="delta_t">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Delta T (°C)</TriggerLabel>
+				<TriggerLabel>Delta T</TriggerLabel>
 				<ControlPageLabel>Delta T °C</ControlPageLabel>
 			</State>
 
@@ -189,12 +189,12 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 			</State>
 			<State id="station_pressure">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Station Pressure (mbar)</TriggerLabel>
+				<TriggerLabel>Station Pressure</TriggerLabel>
 				<ControlPageLabel>Pressure mbar</ControlPageLabel>
 			</State>
 			<State id="sea_level_pressure">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Sea Level Pressure (mbar)</TriggerLabel>
+				<TriggerLabel>Sea Level Pressure</TriggerLabel>
 				<ControlPageLabel>SLP mbar</ControlPageLabel>
 			</State>
 			<State id="cloud_base">
@@ -209,7 +209,7 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 			</State>
 			<State id="vapor_pressure">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Vapor Pressure (mbar)</TriggerLabel>
+				<TriggerLabel>Vapor Pressure</TriggerLabel>
 				<ControlPageLabel>Vapor Press mbar</ControlPageLabel>
 			</State>
 			<State id="air_density">
@@ -238,12 +238,12 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 			<!-- Precipitation -->
 			<State id="rain_accumulation_previous_minute">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Accumulation Previous Minute (mm)</TriggerLabel>
+				<TriggerLabel>Rain Accumulation Previous Minute</TriggerLabel>
 				<ControlPageLabel>Rain Accum mm</ControlPageLabel>
 			</State>
 			<State id="rain_rate">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Rate (mm/h)</TriggerLabel>
+				<TriggerLabel>Rain Rate</TriggerLabel>
 				<ControlPageLabel>Rain Rate mm/h</ControlPageLabel>
 			</State>
 			<State id="rain_intensity">
@@ -268,7 +268,7 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 			</State>
 			<State id="rain_today_raw_mm">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Today Raw (mm, internal)</TriggerLabel>
+				<TriggerLabel>Rain Today Raw (internal)</TriggerLabel>
 				<ControlPageLabel>Rain Today mm</ControlPageLabel>
 			</State>
 			<State id="rain_today_local">
@@ -278,7 +278,7 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 			</State>
 			<State id="rain_today_local_raw_mm">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Today Local Raw (mm, local device accumulation only)</TriggerLabel>
+				<TriggerLabel>Rain Today Local Raw (local device accumulation only)</TriggerLabel>
 				<ControlPageLabel>Rain Today Local mm</ControlPageLabel>
 			</State>
 			<State id="rain_yesterday_local">
@@ -310,12 +310,12 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 			</State>
 			<State id="lightning_strike_average_distance">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Lightning Strike Average Distance (km)</TriggerLabel>
+				<TriggerLabel>Lightning Strike Average Distance</TriggerLabel>
 				<ControlPageLabel>Lightning Dist km</ControlPageLabel>
 			</State>
 			<State id="last_strike_distance">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Last Lightning Strike Distance (km)</TriggerLabel>
+				<TriggerLabel>Last Lightning Strike Distance</TriggerLabel>
 				<ControlPageLabel>Last Strike km</ControlPageLabel>
 			</State>
 			<State id="last_strike_energy">
@@ -337,22 +337,22 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 			</State>
 			<State id="wind_speed">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Speed (m/s)</TriggerLabel>
+				<TriggerLabel>Wind Speed</TriggerLabel>
 				<ControlPageLabel>Wind Speed m/s</ControlPageLabel>
 			</State>
 			<State id="wind_average">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Speed Average (m/s)</TriggerLabel>
+				<TriggerLabel>Wind Speed Average</TriggerLabel>
 				<ControlPageLabel>Wind Avg m/s</ControlPageLabel>
 			</State>
 			<State id="wind_gust">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Gust (m/s)</TriggerLabel>
+				<TriggerLabel>Wind Gust</TriggerLabel>
 				<ControlPageLabel>Wind Gust m/s</ControlPageLabel>
 			</State>
 			<State id="wind_lull">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Lull (m/s)</TriggerLabel>
+				<TriggerLabel>Wind Lull</TriggerLabel>
 				<ControlPageLabel>Wind Lull m/s</ControlPageLabel>
 			</State>
 			<State id="wind_direction">
@@ -583,22 +583,22 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 			</State>
 			<State id="wind_speed">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Speed (m/s)</TriggerLabel>
+				<TriggerLabel>Wind Speed</TriggerLabel>
 				<ControlPageLabel>Wind Speed m/s</ControlPageLabel>
 			</State>
 			<State id="wind_average">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Speed Average (m/s)</TriggerLabel>
+				<TriggerLabel>Wind Speed Average</TriggerLabel>
 				<ControlPageLabel>Wind Avg m/s</ControlPageLabel>
 			</State>
 			<State id="wind_gust">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Gust (m/s)</TriggerLabel>
+				<TriggerLabel>Wind Gust</TriggerLabel>
 				<ControlPageLabel>Wind Gust m/s</ControlPageLabel>
 			</State>
 			<State id="wind_lull">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Lull (m/s)</TriggerLabel>
+				<TriggerLabel>Wind Lull</TriggerLabel>
 				<ControlPageLabel>Wind Lull m/s</ControlPageLabel>
 			</State>
 			<State id="wind_direction">
@@ -642,12 +642,12 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 			<!-- Precipitation -->
 			<State id="rain_accumulation_previous_minute">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Accumulation Previous Minute (mm)</TriggerLabel>
+				<TriggerLabel>Rain Accumulation Previous Minute</TriggerLabel>
 				<ControlPageLabel>Rain Accum mm</ControlPageLabel>
 			</State>
 			<State id="rain_rate">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Rate (mm/h)</TriggerLabel>
+				<TriggerLabel>Rain Rate</TriggerLabel>
 				<ControlPageLabel>Rain Rate mm/h</ControlPageLabel>
 			</State>
 			<State id="rain_intensity">
@@ -672,7 +672,7 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 			</State>
 			<State id="rain_today_raw_mm">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Today Raw (mm, internal)</TriggerLabel>
+				<TriggerLabel>Rain Today Raw (internal)</TriggerLabel>
 				<ControlPageLabel>Rain Today mm</ControlPageLabel>
 			</State>
 			<State id="rain_today_local">
@@ -682,7 +682,7 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 			</State>
 			<State id="rain_today_local_raw_mm">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Today Local Raw (mm, local device accumulation only)</TriggerLabel>
+				<TriggerLabel>Rain Today Local Raw (local device accumulation only)</TriggerLabel>
 				<ControlPageLabel>Rain Today Local mm</ControlPageLabel>
 			</State>
 			<State id="rain_yesterday_local">
@@ -891,7 +891,7 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 			<!-- Temperature -->
 			<State id="air_temperature">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Air Temperature (°C)</TriggerLabel>
+				<TriggerLabel>Air Temperature</TriggerLabel>
 				<ControlPageLabel>Air Temp °C</ControlPageLabel>
 			</State>
 			<State id="temperature">
@@ -901,22 +901,22 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 			</State>
 			<State id="dew_point_temperature">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Dew Point Temperature (°C)</TriggerLabel>
+				<TriggerLabel>Dew Point Temperature</TriggerLabel>
 				<ControlPageLabel>Dew Point °C</ControlPageLabel>
 			</State>
 			<State id="wet_bulb_temperature">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Wet Bulb Temperature (°C)</TriggerLabel>
+				<TriggerLabel>Wet Bulb Temperature</TriggerLabel>
 				<ControlPageLabel>Wet Bulb °C</ControlPageLabel>
 			</State>
 			<State id="heat_index">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Heat Index (°C)</TriggerLabel>
+				<TriggerLabel>Heat Index</TriggerLabel>
 				<ControlPageLabel>Heat Index °C</ControlPageLabel>
 			</State>
 			<State id="delta_t">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Delta T (°C)</TriggerLabel>
+				<TriggerLabel>Delta T</TriggerLabel>
 				<ControlPageLabel>Delta T °C</ControlPageLabel>
 			</State>
 
@@ -928,12 +928,12 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 			</State>
 			<State id="station_pressure">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Station Pressure (mbar)</TriggerLabel>
+				<TriggerLabel>Station Pressure</TriggerLabel>
 				<ControlPageLabel>Pressure mbar</ControlPageLabel>
 			</State>
 			<State id="sea_level_pressure">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Sea Level Pressure (mbar)</TriggerLabel>
+				<TriggerLabel>Sea Level Pressure</TriggerLabel>
 				<ControlPageLabel>SLP mbar</ControlPageLabel>
 			</State>
 			<State id="cloud_base">
@@ -948,7 +948,7 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 			</State>
 			<State id="vapor_pressure">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Vapor Pressure (mbar)</TriggerLabel>
+				<TriggerLabel>Vapor Pressure</TriggerLabel>
 				<ControlPageLabel>Vapor Press mbar</ControlPageLabel>
 			</State>
 			<State id="air_density">
@@ -965,12 +965,12 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 			</State>
 			<State id="lightning_strike_average_distance">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Lightning Strike Average Distance (km)</TriggerLabel>
+				<TriggerLabel>Lightning Strike Average Distance</TriggerLabel>
 				<ControlPageLabel>Lightning Dist km</ControlPageLabel>
 			</State>
 			<State id="last_strike_distance">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Last Lightning Strike Distance (km)</TriggerLabel>
+				<TriggerLabel>Last Lightning Strike Distance</TriggerLabel>
 				<ControlPageLabel>Last Strike km</ControlPageLabel>
 			</State>
 			<State id="last_strike_energy">
@@ -1250,7 +1250,7 @@ Find the station ID in the URL on tempestwx.com — e.g. tempestwx.com/station/1
 			</State>
 			<State id="delta_t">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Delta T (°C differential)</TriggerLabel>
+				<TriggerLabel>Delta T</TriggerLabel>
 				<ControlPageLabel>Delta T</ControlPageLabel>
 			</State>
 			<State id="air_density">
@@ -1385,7 +1385,7 @@ Find the station ID in the URL on tempestwx.com — e.g. tempestwx.com/station/1
 			</State>
 			<State id="last_strike_distance">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Last Lightning Strike Distance (km)</TriggerLabel>
+				<TriggerLabel>Last Lightning Strike Distance</TriggerLabel>
 				<ControlPageLabel>Last Strike km</ControlPageLabel>
 			</State>
 

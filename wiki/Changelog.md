@@ -10,6 +10,7 @@ All notable changes to the WeatherFlow Tempest plugin are listed here. Each rele
 
 | Version | Date | Summary |
 |---|---|---|
+| [**2.5.6**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.6) | 2026-06-03 | Heat index and wind chill show blank (not `0`) when conditions are not met; trigger/condition menus no longer show hardcoded metric unit labels |
 | [**2.5.5**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.5) | 2026-05-31 | Fix `delta_t` and `heat_index` ignoring temperature unit preference — both now correctly display Δ°F / °F when device is set to Fahrenheit |
 | [**2.5.4**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.4) | 2026-05-30 | Separate local and web rain accumulation — four new states (`rain_today_local`, `rain_today_local_raw_mm`, `rain_yesterday_local`, `rain_today_source`); fixes fallback accumulation corruption and midnight-rollover inconsistency |
 | [**2.5.3**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.3) | 2026-05-26 | Fix "state key not defined" errors for dynamically-created states; safe state write helper registers missing keys before writing, filters legacy orphaned states |

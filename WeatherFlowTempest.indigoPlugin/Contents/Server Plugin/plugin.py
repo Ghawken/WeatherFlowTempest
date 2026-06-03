@@ -746,8 +746,9 @@ class Plugin(indigo.PluginBase):
             _h = getattr(device, "relative_humidity", None)
             _p = getattr(device, "station_pressure", None)
             _r = getattr(device, "rain_rate", None)
+            _hi = getattr(device, "heat_index", None)
             self.logger.debug(
-                "%s: observation  temp=%s  humidity=%s  pressure=%s  rain_rate=%s  rain_today=%s mm (%s)",
+                "%s: observation  temp=%s  humidity=%s  pressure=%s  rain_rate=%s  rain_today=%s mm (%s)  heat_index=%s",
                 sn,
                 getattr(_t, "magnitude", _t),
                 getattr(_h, "magnitude", _h),
@@ -755,7 +756,19 @@ class Plugin(indigo.PluginBase):
                 getattr(_r, "magnitude", _r),
                 f"{rain_today_mm:.2f}" if rain_today_mm is not None else "n/a",
                 rain_source,
+                getattr(_hi, "magnitude", _hi),
             )
+            if isinstance(device, TempestDevice):
+                _wc = device.wind_chill_temperature
+                _fl = device.feels_like_temperature
+                self.logger.debug(
+                    "%s:   wind_chill=%s  feels_like=%s  delta_t=%s",
+                    sn,
+                    getattr(_wc, "magnitude", _wc),
+                    getattr(_fl, "magnitude", _fl),
+                    getattr(getattr(device, "delta_t", None), "magnitude",
+                            getattr(device, "delta_t", None)),
+                )
         except Exception:
             self.logger.exception("%s: error in observation handler", device.serial_number)
 
@@ -2120,16 +2133,20 @@ def _build_observation_states(
     if _hi is not None:
         _add_u(states, "heat_index", _hi, "temp", unit_prefs)
     else:
-        # heat_index conditions not met (temp < 80 °F or rh < 40 %) — write an explicit
-        # zero so any stale Celsius reading is cleared when temperature units change.
-        _hi_spec = _UNIT_SPECS.get(("temp", unit_prefs.get("temp", "celsius")))
-        _hi_sym  = _hi_spec[0] if _hi_spec else "°C"
-        states.append({"key": "heat_index", "value": 0, "uiValue": f"0 {_hi_sym}"})
+        # heat_index conditions not met (temp < 80 °F or rh < 40 %) — write None so
+        # the state is always updated and stale readings never persist.
+        states.append({"key": "heat_index", "value": None, "uiValue": ""})
     _add_u(states, "delta_t",               getattr(device, "delta_t", None),               "delta_t", unit_prefs)
 
     if isinstance(device, TempestDevice):
         _add_u(states, "feels_like_temperature", device.feels_like_temperature, "temp", unit_prefs)
-        _add_u(states, "wind_chill_temperature", device.wind_chill_temperature, "temp", unit_prefs)
+        _wc = device.wind_chill_temperature
+        if _wc is not None:
+            _add_u(states, "wind_chill_temperature", _wc, "temp", unit_prefs)
+        else:
+            # Wind chill conditions not met (temp > 50 °F or wind < 3 mph) — write None so
+            # the state is always updated and stale readings never persist.
+            states.append({"key": "wind_chill_temperature", "value": None, "uiValue": ""})
 
     # --- Atmospheric ---
     _add_u(states, "relative_humidity", getattr(device, "relative_humidity", None), "percent",  unit_prefs)
