@@ -135,6 +135,15 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 				</List>
 			</Field>
 
+			<Field id="distUnit" type="menu" defaultValue="km"
+				   tooltip="Unit for lightning distance states.">
+				<Label>Distance Display:</Label>
+				<List>
+					<Option value="km">Kilometres (km)</Option>
+					<Option value="mi">Miles (mi)</Option>
+				</List>
+			</Field>
+
 			<Field id="sep5" type="separator"/>
 		</ConfigUI>
 
@@ -571,6 +580,15 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				</List>
 			</Field>
 
+			<Field id="distUnit" type="menu" defaultValue="km"
+				   tooltip="Unit for lightning distance states.">
+				<Label>Distance Display:</Label>
+				<List>
+					<Option value="km">Kilometres (km)</Option>
+					<Option value="mi">Miles (mi)</Option>
+				</List>
+			</Field>
+
 			<Field id="sep5" type="separator"/>
 		</ConfigUI>
 
@@ -881,6 +899,15 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				<List>
 					<Option value="m">Metres (m)</Option>
 					<Option value="ft">Feet (ft)</Option>
+				</List>
+			</Field>
+
+			<Field id="distUnit" type="menu" defaultValue="km"
+				   tooltip="Unit for lightning distance states.">
+				<Label>Distance Display:</Label>
+				<List>
+					<Option value="km">Kilometres (km)</Option>
+					<Option value="mi">Miles (mi)</Option>
 				</List>
 			</Field>
 

@@ -277,15 +277,44 @@ You can add as many Public Tempest Station devices as you like — there is no l
 | `rain_duration_yesterday` | **Web only** | Minutes of measurable rain yesterday |
 
 #### Lightning
+
+Lightning states come from three distinct sources that update at different times and answer different questions. Understanding which state to use for which purpose avoids a lot of confusion.
+
+**Per-observation states** — updated every ~1 minute with each `obs_st` packet:
+
 | State | Source | Description |
 |---|---|---|
-| `lightning_strike_count` | UDP | Strikes detected in the last 3 minutes |
-| `lightning_strike_average_distance` | UDP | Average distance of recent strikes |
-| `last_strike_distance` | UDP | Distance of the most recent strike |
-| `last_strike_energy` | UDP | Energy of the most recent strike |
-| `last_strike_time` | UDP | Timestamp of the most recent strike (UTC) |
-| `lightning_count_last_1hr` | **Web only** | Strikes in the last 60 minutes |
-| `lightning_count_last_3hr` | **Web only** | Strikes in the last 3 hours |
+| `lightning_strike_count` | UDP | Strikes detected in the **current 1-minute observation window**. Resets to `0` at the start of every new observation — this is normal. It is **not** a running total. |
+| `lightning_strike_average_distance` | UDP | Average distance of the strikes in that same 1-minute window. Only meaningful when `lightning_strike_count > 0`; reads `0` the rest of the time. |
+
+> `lightning_strike_count = 0` between strike-active minutes is completely normal. For "is there a storm active?", use `lightning_count_last_1hr` instead.
+
+**Per-strike states** — updated when a strike is detected (UDP `evt_strike` event or web API fallback):
+
+| State | Source | Description |
+|---|---|---|
+| `last_strike_distance` | UDP + Web† | Distance of the **single most recent strike**. Blank until the first strike of a session. Persists after the storm passes — use `last_strike_time` to judge how stale it is. May be blank if the sensor could not determine range (very close or very distant strikes). |
+| `last_strike_energy` | UDP only | A dimensionless relative intensity value from the sensor hardware — **not** joules or watts. Useful for comparing strike strength within a storm; has no standard physical unit. Blank when the sensor could not determine it. |
+| `last_strike_time` | UDP + Web† | UTC timestamp of the most recent detected strike. Persists until the next strike; blank until the first strike. |
+
+> † As of v2.5.8, `last_strike_distance` and `last_strike_time` are also updated from the WeatherFlow web API on every poll (requires API token). This means they populate even when UDP `evt_strike` packets are not arriving.
+
+**Rolling window counts** — updated on every web API poll (~60 s), requires API token:
+
+| State | Source | Description |
+|---|---|---|
+| `lightning_count_last_1hr` | Web only | Quality-controlled count of all strikes in the rolling last 60 minutes. The most reliable indicator of current storm activity. |
+| `lightning_count_last_3hr` | Web only | Same but 3-hour rolling window. Useful for tracking an approaching or receding storm. |
+
+**Common confusion**
+
+| Scenario | Explanation |
+|---|---|
+| `lightning_strike_count` is `0` but there was a strike | Normal — it resets every minute. Check `lightning_count_last_1hr` or `last_strike_time`. |
+| `lightning_strike_average_distance` is `0` | No strikes in the current 1-minute window. Not the same as a strike at 0 km. |
+| `last_strike_distance` is blank | No strike detected yet this session, or the sensor could not determine the range. The minimum reliable detection distance is ~1 km. |
+| `last_strike_distance` still shows yesterday's storm | It persists until a new strike overwrites it. Always check `last_strike_time` alongside it. |
+| `last_strike_energy` is blank | The sensor reported a null energy value — not unusual for marginal-range detections. |
 
 #### Conditions (Web API only)
 | State | Description |

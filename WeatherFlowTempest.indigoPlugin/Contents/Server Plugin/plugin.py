@@ -821,14 +821,44 @@ class Plugin(indigo.PluginBase):
             _add_u(states, "lightning_strike_average_distance",
                    device.lightning_strike_average_distance, "distance", unit_prefs)
             if event is not None:
-                _add_u(states, "last_strike_distance", event.distance, "distance", unit_prefs)
-                states.append({"key": "last_strike_energy", "value": int(event.energy)})
+                # Use the private _distance / _energy fields to distinguish a genuine
+                # null (device could not determine distance/energy) from a real 0.
+                # pyweatherflowudp's public .distance / .energy use nvl(x, 0) which
+                # silently maps null → 0, making unknown look like an overhead strike.
+                # WeatherFlow's minimum detection range is ~1 km, so 0 is never real.
+                if getattr(event, "_distance", None) is not None:
+                    _add_u(states, "last_strike_distance", event.distance, "distance", unit_prefs)
+                else:
+                    states.append({"key": "last_strike_distance", "value": None, "uiValue": ""})
+
+                if getattr(event, "_energy", None) is not None:
+                    states.append({"key": "last_strike_energy", "value": int(event.energy)})
+                else:
+                    states.append({"key": "last_strike_energy", "value": None, "uiValue": ""})
+
                 if event.timestamp:
                     states.append({"key": "last_strike_time", "value": str(event.timestamp)})
             if states:
                 self._safe_update_states(dev, states)
             self._check_triggers("lightningStrike", dev.id)
-            self.logger.debug("%s: lightning strike", device.serial_number)
+            _dist_known = event is not None and getattr(event, "_distance", None) is not None
+            _dist_unit = unit_prefs.get("distance", "km")
+            if _dist_known:
+                _dist_qty_raw = event.distance  # km Quantity from pyweatherflowudp
+                _dist_spec = _UNIT_SPECS.get(("distance", _dist_unit))
+                if _dist_spec and _dist_spec[2]:  # pint_target
+                    _dist_val = round(_dist_qty_raw.to(_dist_spec[2]).magnitude, 1)
+                else:
+                    _dist_val = round(_dist_qty_raw.magnitude, 1)
+                _dist_str = f"{_dist_val} {_dist_unit}"
+            else:
+                _dist_str = "unknown"
+            self.logger.info(
+                "%s: lightning strike  distance=%s  energy=%s",
+                device.serial_number,
+                _dist_str,
+                event.energy if (event is not None and getattr(event, "_energy", None) is not None) else "unknown",
+            )
         except Exception:
             self.logger.exception("%s: error in strike handler", device.serial_number)
 
@@ -1723,6 +1753,14 @@ class Plugin(indigo.PluginBase):
                 current = dev.states.get(key, "<not set>")
                 new_val = s.get("uiValue", s.get("value"))
                 self.logger.debug("%s:   %-38s %r → %r", label, key, current, new_val)
+            # Show raw API lightning fields so missing states can be diagnosed
+            # (null = no recent lightning; 0 distance = API couldn't determine range)
+            self.logger.debug(
+                "%s:   web lightning raw — last_dist=%r km  last_epoch=%r",
+                label,
+                obs.get("lightning_strike_last_distance"),
+                obs.get("lightning_strike_last_epoch"),
+            )
 
         self._safe_update_states(dev, states)
 
@@ -2033,7 +2071,7 @@ def _get_unit_prefs(dev) -> dict:
         "rain":      rain_unit,
         "rain_rate": rain_unit,
         "alt":       props.get("altUnit",      "ft"   if legacy_imperial else "m"),
-        "distance":  "km",
+        "distance":  props.get("distUnit",    "km"),
     }
 
 
@@ -2371,7 +2409,7 @@ def _build_web_observation_states(
     if icon is not None:
         states.append({"key": "weather_icon", "value": str(icon)})
 
-    # Hourly and 3-hour lightning counts
+    # Hourly and 3-hour lightning counts — always update from web regardless of UDP status
     lc_1hr = obs.get("lightning_strike_count_last_1hr")
     if lc_1hr is not None:
         states.append({"key": "lightning_count_last_1hr", "value": int(lc_1hr)})
@@ -2379,6 +2417,24 @@ def _build_web_observation_states(
     lc_3hr = obs.get("lightning_strike_count_last_3hr")
     if lc_3hr is not None:
         states.append({"key": "lightning_count_last_3hr", "value": int(lc_3hr)})
+
+    # Last strike distance and time — always update from web regardless of UDP status.
+    # evt_strike UDP packets may not arrive even when observations are flowing, so these
+    # states need a web source that is not gated on include_standard / UDP-active.
+    # Distance of 0 means the API could not determine the range (same null semantics as
+    # the UDP path) — skip it so 0 never misleads as an "overhead" strike.
+    lsd = obs.get("lightning_strike_last_distance")
+    lse = obs.get("lightning_strike_last_epoch")
+    if lsd is not None and float(lsd) != 0:
+        _add_u(states, "last_strike_distance",
+               units.Quantity(float(lsd), "km"), "distance", unit_prefs)
+
+    if lse is not None:
+        try:
+            ts = datetime.datetime.fromtimestamp(int(lse), tz=datetime.timezone.utc)
+            states.append({"key": "last_strike_time", "value": str(ts)})
+        except Exception:
+            pass
 
     if not include_standard:
         return states
@@ -2423,11 +2479,6 @@ def _build_web_observation_states(
     uv = obs.get("uv")
     if uv is not None:
         _add_u(states, "uv", float(uv), "uv", unit_prefs)
-
-    # Last strike distance and energy from web data
-    lsd = obs.get("lightning_strike_last_distance")
-    if lsd is not None:
-        _add_u(states, "last_strike_distance", _qty("lightning_strike_last_distance", "km"), "distance", unit_prefs)
 
     states.extend(_build_unit_states(unit_prefs))
     states.append({"key": "deviceStatus", "value": "Active (web)"})
