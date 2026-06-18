@@ -10,7 +10,7 @@ All notable changes to the WeatherFlow Tempest plugin are listed here. Each rele
 
 | Version | Date | Summary |
 |---|---|---|
-| [**2.5.8**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.8) | 2026-06-08 | Fix `last_strike_distance` / `last_strike_time` not updating during thunderstorms (web path gated behind UDP-inactive check; `last_strike_time` had no web source at all); promote strike log to INFO; add Distance Display (km/mi) to Tempest/Sky/Air ConfigUI |
+| [**2.5.8**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.8) | 2026-06-08 | Fix Public Tempest Station ignoring unit preferences (always showed metric); fix `last_strike_distance` / `last_strike_time` not updating during thunderstorms; promote strike log to INFO; add Distance Display (km/mi) to Tempest/Sky/Air ConfigUI |
 | [**2.5.7**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.7) | 2026-06-04 | Fix Conditions menu still showing hardcoded metric units (e.g. "Air Temp °C") — completes the unit-label cleanup from 2.5.6 |
 | [**2.5.6**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.6) | 2026-06-03 | Heat index and wind chill show blank (not `0`) when conditions are not met; trigger/condition menus no longer show hardcoded metric unit labels |
 | [**2.5.5**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.5) | 2026-05-31 | Fix `delta_t` and `heat_index` ignoring temperature unit preference — both now correctly display Δ°F / °F when device is set to Fahrenheit |

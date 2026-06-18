@@ -57,11 +57,6 @@ _PUBLIC_HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     ),
 }
-# Mappings from pluginProp unit values → WeatherFlow API query parameter values
-_UNIT_PREFS_TO_API_TEMP     = {"celsius": "c",     "fahrenheit": "f"}
-_UNIT_PREFS_TO_API_WIND     = {"ms": "ms",         "kmh": "kph",  "knots": "kts", "mph": "mph"}
-_UNIT_PREFS_TO_API_PRESSURE = {"hpa": "hpa",       "mmhg": "mmhg",  "inhg": "inhg"}
-_UNIT_PREFS_TO_API_RAIN     = {"mm": "mm",         "inch": "in"}
 
 _RAIN_CHECK_LABELS: dict[int, str] = {0: "none", 1: "on", 2: "off"}
 
@@ -1541,9 +1536,8 @@ class Plugin(indigo.PluginBase):
             if fail_count >= _SUSPEND_AFTER:
                 continue
             unit_prefs = _get_unit_prefs(dev)
-            unit_prefs["distUnit"] = dev.pluginProps.get("distUnit", "km")
             try:
-                data, err = await self._fetch_public_station_obs(station_id, unit_prefs)
+                data, err = await self._fetch_public_station_obs(station_id)
             except asyncio.CancelledError:
                 raise
             except Exception:
@@ -1568,18 +1562,19 @@ class Plugin(indigo.PluginBase):
                     )
 
     async def _fetch_public_station_obs(
-        self, station_id: int, unit_prefs: dict
+        self, station_id: int
     ) -> tuple[dict | None, str | None]:
-        """Fetch observations for a public station using the system API key."""
-        temp_p  = _UNIT_PREFS_TO_API_TEMP.get(unit_prefs.get("temp", "celsius"), "c")
-        wind_p  = _UNIT_PREFS_TO_API_WIND.get(unit_prefs.get("wind", "ms"), "ms")
-        press_p = _UNIT_PREFS_TO_API_PRESSURE.get(unit_prefs.get("pressure", "hpa"), "hpa")
-        rain_p  = _UNIT_PREFS_TO_API_RAIN.get(unit_prefs.get("rain", "mm"), "mm")
+        """Fetch observations for a public station using the system API key.
+
+        Always requests metric units — conversion to user preference is handled in
+        _build_public_obs_states via _add_u / Pint, identical to the personal-station
+        path in _build_web_observation_states.  Relying on the observations/station
+        endpoint to apply unit params is unreliable with the public API key.
+        """
         url = (
             f"{_WEB_API_BASE}/observations/station/{station_id}"
             f"?api_key={_PUBLIC_API_KEY}"
-            f"&units_temp={temp_p}&units_wind={wind_p}"
-            f"&units_pressure={press_p}&units_precip={rain_p}&units_distance=km"
+            f"&units_temp=c&units_wind=mps&units_pressure=mb&units_precip=mm&units_distance=km"
         )
         loop = asyncio.get_running_loop()
         try:
@@ -1631,7 +1626,13 @@ class Plugin(indigo.PluginBase):
         states = _build_public_obs_states(data, unit_prefs, indigo_lat, indigo_lon)
         if not states:
             return
-        self.logger.debug("%s: public obs — %d states updated", dev.name, len(states))
+        if self.logger.isEnabledFor(logging.DEBUG):
+            self.logger.debug("%s: public obs — %d states:", dev.name, len(states))
+            for s in states:
+                key = s["key"]
+                current = dev.states.get(key, "<not set>")
+                new_val = s.get("uiValue", s.get("value"))
+                self.logger.debug("%s:   %-38s %r → %r", dev.name, key, current, new_val)
         self._safe_update_states(dev, states)
 
     def _on_web_obs(self, dev_id: int, obs: dict) -> None:
@@ -1825,12 +1826,23 @@ def _build_public_obs_states(
 ) -> list[dict]:
     """Build Indigo state list from a WeatherFlow public observations/station response.
 
-    Values are already in the user's requested units (passed as API query params),
-    so no Pint conversion is needed — just format and label.
+    The fetch always requests metric (°C, m/s, hPa, mm, km).  Conversion to the
+    user's preferred units is done here via _add_u / Pint — identical to the approach
+    used for personal stations in _build_web_observation_states.
     """
     states: list[dict] = []
     obs_list = data.get("obs", [])
     obs: dict = obs_list[0] if obs_list else {}
+
+    # Helper: wrap a raw API float in a Pint Quantity for unit conversion.
+    def _qty(key: str, pint_unit: str):
+        v = obs.get(key)
+        if v is None:
+            return None
+        try:
+            return units.Quantity(float(v), pint_unit)
+        except Exception:
+            return None
 
     # --- Station identity ---
     states.append({"key": "station_name", "value": str(data.get("station_name", ""))})
@@ -1851,7 +1863,7 @@ def _build_public_obs_states(
         brg = _bearing_deg(indigo_lat, indigo_lon, slat, slon)
         cardinal = _degrees_to_cardinal(brg)
         dist_mi = dist_km * 0.621371
-        use_miles = unit_prefs.get("distUnit", "km") == "mi"
+        use_miles = unit_prefs.get("distance", "km") == "mi"
         desc = _distance_description(dist_km, brg, use_miles)
         states.append({"key": "distance_km",
                         "value": round(dist_km, 2), "decimalPlaces": 2,
@@ -1865,37 +1877,29 @@ def _build_public_obs_states(
         states.append({"key": "bearing_cardinal",     "value": cardinal})
         states.append({"key": "distance_description", "value": desc})
 
-    # --- Unit display symbols ---
-    t_sym  = _UNIT_DISPLAY.get(unit_prefs.get("temp",     "celsius"), "°C")
-    p_sym  = _UNIT_DISPLAY.get(unit_prefs.get("pressure", "hpa"),     "hPa")
-    p_dp   = 2 if unit_prefs.get("pressure") == "inhg" else 1
-    w_sym  = _UNIT_DISPLAY.get(unit_prefs.get("wind",     "ms"),      "m/s")
-    r_sym  = _UNIT_DISPLAY.get(unit_prefs.get("rain",     "mm"),      "mm")
-    r_dp   = 3 if unit_prefs.get("rain") == "inch" else 2
+    # --- Temperature (API returns °C; _add_u converts to user pref) ---
+    _add_u(states, "air_temperature",        _qty("air_temperature",     "degC"), "temp",    unit_prefs)
+    _add_u(states, "dew_point_temperature",  _qty("dew_point",           "degC"), "temp",    unit_prefs)
+    _add_u(states, "wet_bulb_temperature",   _qty("wet_bulb_temperature","degC"), "temp",    unit_prefs)
+    _add_u(states, "feels_like_temperature", _qty("feels_like",          "degC"), "temp",    unit_prefs)
+    _add_u(states, "heat_index",             _qty("heat_index",          "degC"), "temp",    unit_prefs)
+    _add_u(states, "wind_chill_temperature", _qty("wind_chill",          "degC"), "temp",    unit_prefs)
+    # delta_t is a temperature differential — manual ×1.8 factor (no +32 offset)
+    _add_u(states, "delta_t",               _qty("delta_t",             "degC"), "delta_t", unit_prefs)
+    _pub_state(states, "air_density", obs.get("air_density"), 3, "kg/m³")
 
-    # --- Temperature ---
-    _pub_state(states, "air_temperature",        obs.get("air_temperature"),      1, t_sym)
-    _pub_state(states, "dew_point_temperature",  obs.get("dew_point"),            1, t_sym)
-    _pub_state(states, "wet_bulb_temperature",   obs.get("wet_bulb_temperature"), 1, t_sym)
-    _pub_state(states, "feels_like_temperature", obs.get("feels_like"),           1, t_sym)
-    _pub_state(states, "heat_index",             obs.get("heat_index"),           1, t_sym)
-    _pub_state(states, "wind_chill_temperature", obs.get("wind_chill"),           1, t_sym)
-    _dt_sym = "Δ°F" if unit_prefs.get("temp") == "fahrenheit" else "Δ°C"
-    _pub_state(states, "delta_t",                obs.get("delta_t"),              1, _dt_sym)
-    _pub_state(states, "air_density",            obs.get("air_density"),          3, "kg/m³")
-
-    # --- Atmospheric ---
+    # --- Atmospheric (API returns hPa/mb; _add_u converts to user pref) ---
     rh = obs.get("relative_humidity")
     if rh is not None:
         rh_i = int(round(float(rh)))
         states.append({"key": "relative_humidity", "value": rh_i, "uiValue": f"{rh_i} %"})
-    _pub_state(states, "station_pressure",   obs.get("station_pressure"),   p_dp, p_sym)
-    _pub_state(states, "sea_level_pressure", obs.get("sea_level_pressure"), p_dp, p_sym)
+    _add_u(states, "station_pressure",   _qty("station_pressure",   "hPa"), "pressure", unit_prefs)
+    _add_u(states, "sea_level_pressure", _qty("sea_level_pressure", "hPa"), "pressure", unit_prefs)
     pt = obs.get("pressure_trend")
     if pt is not None:
         states.append({"key": "pressure_trend", "value": str(pt)})
 
-    # --- Light / UV ---
+    # --- Light / UV (fixed units — no conversion) ---
     solar = obs.get("solar_radiation")
     if solar is not None:
         solar_i = int(round(float(solar)))
@@ -1906,11 +1910,11 @@ def _build_public_obs_states(
         states.append({"key": "illuminance", "value": brt_i, "uiValue": f"{brt_i} lx"})
     _pub_state(states, "uv", obs.get("uv"), 1, "UV")
 
-    # --- Wind ---
-    _pub_state(states, "wind_average", obs.get("wind_avg"),  1, w_sym)
-    _pub_state(states, "wind_speed",   obs.get("wind_avg"),  1, w_sym)
-    _pub_state(states, "wind_gust",    obs.get("wind_gust"), 1, w_sym)
-    _pub_state(states, "wind_lull",    obs.get("wind_lull"), 1, w_sym)
+    # --- Wind (API returns m/s; _add_u converts to user pref) ---
+    _add_u(states, "wind_average", _qty("wind_avg",  "meter/second"), "wind", unit_prefs)
+    _add_u(states, "wind_speed",   _qty("wind_avg",  "meter/second"), "wind", unit_prefs)
+    _add_u(states, "wind_gust",    _qty("wind_gust", "meter/second"), "wind", unit_prefs)
+    _add_u(states, "wind_lull",    _qty("wind_lull", "meter/second"), "wind", unit_prefs)
     wd = obs.get("wind_direction")
     if wd is not None:
         wd_f = float(wd)
@@ -1922,10 +1926,10 @@ def _build_public_obs_states(
         states.append({"key": "wind_direction_cardinal",         "value": card})
         states.append({"key": "wind_direction_average_cardinal", "value": card})
 
-    # --- Rain ---
-    _pub_state(states, "rain_today",     obs.get("precip_accum_local_day"),       r_dp, r_sym)
-    _pub_state(states, "rain_yesterday", obs.get("precip_accum_local_yesterday"), r_dp, r_sym)
-    _pub_state(states, "rain_last_1hr",  obs.get("precip_accum_last_1hr"),        r_dp, r_sym)
+    # --- Rain (API returns mm; _add_u converts to user pref) ---
+    _add_u(states, "rain_today",     _qty("precip_accum_local_day",       "mm"), "rain", unit_prefs)
+    _add_u(states, "rain_yesterday", _qty("precip_accum_local_yesterday", "mm"), "rain", unit_prefs)
+    _add_u(states, "rain_last_1hr",  _qty("precip_accum_last_1hr",        "mm"), "rain", unit_prefs)
     rd_today = obs.get("precip_minutes_local_day")
     if rd_today is not None:
         states.append({"key": "rain_duration_today",     "value": int(rd_today)})
@@ -1943,7 +1947,9 @@ def _build_public_obs_states(
     lc3 = obs.get("lightning_strike_count_last_3hr")
     if lc3 is not None:
         states.append({"key": "lightning_count_last_3hr", "value": int(lc3)})
-    _pub_state(states, "last_strike_distance", obs.get("lightning_strike_last_distance"), 1, "km")
+    # Distance: API returns km; _add_u converts to user pref (km or mi)
+    _add_u(states, "last_strike_distance",
+           _qty("lightning_strike_last_distance", "km"), "distance", unit_prefs)
 
     # --- Timestamp ---
     ts = obs.get("timestamp")

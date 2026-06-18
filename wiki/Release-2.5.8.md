@@ -11,7 +11,7 @@
 
 ## Highlights
 
-Fixes three separate bugs that caused `last_strike_distance`, `last_strike_time`, and `last_strike_energy` to remain empty or stale even during active thunderstorms. Also adds a Distance Display unit preference (km / mi) to Tempest, Sky, and Air device configuration.
+Fixes three separate bugs that caused `last_strike_distance` and `last_strike_time` to remain empty or stale during active thunderstorms. Fixes Public Tempest Station unit conversion — temperature, wind, pressure, and rain states were always displayed in metric regardless of device configuration. Also adds a Distance Display unit preference (km / mi) to Tempest, Sky, and Air device configuration.
 
 <img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
@@ -38,6 +38,47 @@ Fixes three separate bugs that caused `last_strike_distance`, `last_strike_time`
 **Root cause:** The `_on_strike` handler emitted its summary at `DEBUG` level. In normal (non-debug) operation, there was no log evidence that `evt_strike` UDP packets were arriving at all, making it impossible to distinguish "strikes are happening but states aren't updating" from "no strike packets are arriving."
 
 **Fix:** Promoted to `INFO` — every UDP strike now logs `distance=X  energy=Y` at INFO level.
+
+<img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
+
+## Bug Fix
+
+### 4. Public Tempest Station ignored unit preferences (always showed metric)
+
+**Root cause:** `_build_public_obs_states` assumed the `observations/station/{id}` API would honour unit query parameters (`units_temp=f`, `units_wind=mph`, etc.) and return values already in the user's preferred units. In practice the endpoint returns metric values regardless of what unit parameters are sent — meaning a Public Station configured for Fahrenheit, mph, and inches still displayed °C, m/s, and mm.
+
+**Fix:** Aligned the Public Tempest Station path with how personal stations have always worked:
+
+| | Before | After |
+|---|---|---|
+| API fetch | Dynamic unit params sent, API expected to convert | Always requests metric (`units_temp=c`, `units_wind=mps`, `units_pressure=mb`, `units_precip=mm`, `units_distance=km`) |
+| Conversion | Assumed done by API; values written as-is | Plugin converts via `_add_u` / Pint — identical to `_build_web_observation_states` |
+| `last_strike_distance` | Hardcoded `km` symbol | `_add_u` with `"distance"` category — converts to km or mi per device setting |
+
+**Affected states (now correctly converted):**
+
+| State | API field | Metric unit in | Converts to |
+|---|---|---|---|
+| `air_temperature` | `air_temperature` | °C | °C or °F |
+| `dew_point_temperature` | `dew_point` | °C | °C or °F |
+| `wet_bulb_temperature` | `wet_bulb_temperature` | °C | °C or °F |
+| `feels_like_temperature` | `feels_like` | °C | °C or °F |
+| `heat_index` | `heat_index` | °C | °C or °F |
+| `wind_chill_temperature` | `wind_chill` | °C | °C or °F |
+| `delta_t` | `delta_t` | Δ°C | Δ°C or Δ°F |
+| `station_pressure` | `station_pressure` | hPa | hPa, mmHg, or inHg |
+| `sea_level_pressure` | `sea_level_pressure` | hPa | hPa, mmHg, or inHg |
+| `wind_average` / `wind_speed` | `wind_avg` | m/s | m/s, km/h, kn, or mph |
+| `wind_gust` | `wind_gust` | m/s | m/s, km/h, kn, or mph |
+| `wind_lull` | `wind_lull` | m/s | m/s, km/h, kn, or mph |
+| `rain_today` | `precip_accum_local_day` | mm | mm or in |
+| `rain_yesterday` | `precip_accum_local_yesterday` | mm | mm or in |
+| `rain_last_1hr` | `precip_accum_last_1hr` | mm | mm or in |
+| `last_strike_distance` | `lightning_strike_last_distance` | km | km or mi |
+
+Fixed-unit states (UV, solar radiation, illuminance, relative humidity, elevation, air density) are unchanged.
+
+**Existing devices:** No configuration changes required. Values will now display in whatever units are set in Edit Device — if you've had the device configured for Fahrenheit/mph/inches all along, they will now correctly show those units after the plugin reloads.
 
 <img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 
@@ -118,7 +159,7 @@ Requires a valid API token. These are quality-controlled by the WeatherFlow clou
 
 ## Upgrade Notes
 
-- No configuration changes required.
-- Lightning states (`last_strike_distance`, `last_strike_time`) now populate from the web API even when UDP strike events are not arriving — requires an API token.
-- To switch lightning distance display to miles: Edit Device → **Distance Display → Miles (mi)**.
-- Existing devices without a saved `distUnit` preference default to km.
+- No configuration changes required for any device type.
+- **Public Tempest Station:** Values will now display in the units configured in Edit Device. If you have had the device set to Fahrenheit/mph/inches and it was showing metric, it will immediately show correct values after the plugin reloads — no reconfiguration needed.
+- **Lightning states** (`last_strike_distance`, `last_strike_time`) now populate from the web API even when UDP strike events are not arriving — requires an API token.
+- **Distance Display for Tempest/Sky/Air:** Existing devices default to km. To switch to miles, Edit Device → **Distance Display → Miles (mi)**.
