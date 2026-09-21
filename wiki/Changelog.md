@@ -10,6 +10,8 @@ All notable changes to the WeatherFlow Tempest plugin are listed here. Each rele
 
 | Version | Date | Summary |
 |---|---|---|
+| [**2.6.0**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.6.0) | 2026-09-21 | New `rain_lastweek` and `rain_lastmonth` states — rolling 7-day and 30-day rain totals calculated by the plugin and persisted to disk; ideal for irrigation logic. Tempest and Sky devices, respects rainfall unit preference |
+| [**2.5.9**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.9) | 2026-06-21 | Two false "Stale data" fixes: (1) replaced sensor — skip web poll for serials no longer broadcasting UDP, log actionable warning; (2) cloud pipeline lag — skip stale mark when hub is active via UDP, preventing false red-device after internet outage reconnect |
 | [**2.5.8**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.8) | 2026-06-08 | Fix Public Tempest Station ignoring unit preferences (always showed metric); fix `last_strike_distance` / `last_strike_time` not updating during thunderstorms; promote strike log to INFO; add Distance Display (km/mi) to Tempest/Sky/Air ConfigUI |
 | [**2.5.7**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.7) | 2026-06-04 | Fix Conditions menu still showing hardcoded metric units (e.g. "Air Temp °C") — completes the unit-label cleanup from 2.5.6 |
 | [**2.5.6**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.6) | 2026-06-03 | Heat index and wind chill show blank (not `0`) when conditions are not met; trigger/condition menus no longer show hardcoded metric unit labels |

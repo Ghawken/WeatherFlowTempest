@@ -295,6 +295,16 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 				<TriggerLabel>Rain Yesterday Local (device source, not rain-check corrected)</TriggerLabel>
 				<ControlPageLabel>Rain Yesterday Local</ControlPageLabel>
 			</State>
+			<State id="rain_lastweek">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Last 7 Days (rolling total, includes today)</TriggerLabel>
+				<ControlPageLabel>Rain Last Week</ControlPageLabel>
+			</State>
+			<State id="rain_lastmonth">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Last 30 Days (rolling total, includes today)</TriggerLabel>
+				<ControlPageLabel>Rain Last Month</ControlPageLabel>
+			</State>
 			<State id="rain_today_source">
 				<ValueType>String</ValueType>
 				<TriggerLabel>Rain Today Local Source (hub = device direct / accumulated = per-minute fallback)</TriggerLabel>
@@ -707,6 +717,16 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Rain Yesterday Local (device source, not rain-check corrected)</TriggerLabel>
 				<ControlPageLabel>Rain Yesterday Local</ControlPageLabel>
+			</State>
+			<State id="rain_lastweek">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Last 7 Days (rolling total, includes today)</TriggerLabel>
+				<ControlPageLabel>Rain Last Week</ControlPageLabel>
+			</State>
+			<State id="rain_lastmonth">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Last 30 Days (rolling total, includes today)</TriggerLabel>
+				<ControlPageLabel>Rain Last Month</ControlPageLabel>
 			</State>
 			<State id="rain_today_source">
 				<ValueType>String</ValueType>

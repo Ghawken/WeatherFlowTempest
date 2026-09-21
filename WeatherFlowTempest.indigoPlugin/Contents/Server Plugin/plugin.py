@@ -16,6 +16,7 @@ import datetime
 import json
 import logging
 import math
+import os
 import threading
 import time
 import urllib.request
@@ -287,6 +288,13 @@ class Plugin(indigo.PluginBase):
         self._public_fail_count: dict[int, int] = {}
         # dev_id -> epoch when data first became stale (cleared on good update)
         self._web_stale_since: dict[int, float] = {}
+        # Serials for which we have already logged a "not discovered via UDP" warning
+        # (prevents the message repeating every poll cycle)
+        self._undiscovered_warned: set[str] = set()
+        # serial_number -> {ISO date -> daily rain total mm} for rolling 7/30-day sums.
+        # Persisted to a JSON file so history survives plugin restarts.
+        self._rain_history: dict[str, dict[str, float]] = {}
+        self._rain_history_dirty: bool = False
 
     # -------------------------------------------------------------------------
     # Plugin lifecycle
@@ -296,6 +304,7 @@ class Plugin(indigo.PluginBase):
         self.logger.info("WeatherFlow Tempest: starting")
         _patch_tempest_device()
         _patch_sky_device()
+        self._load_rain_history()
 
         self._event_loop = asyncio.new_event_loop()
         self._async_thread = threading.Thread(
@@ -412,6 +421,88 @@ class Plugin(indigo.PluginBase):
         self.stopThread = True
 
     # -------------------------------------------------------------------------
+    # Rain history (rolling 7/30-day totals)
+    # -------------------------------------------------------------------------
+
+    def _rain_history_path(self) -> str:
+        folder = os.path.join(
+            indigo.server.getInstallFolderPath(), "Preferences", "Plugins"
+        )
+        return os.path.join(folder, f"{self.pluginId}_rain_history.json")
+
+    def _load_rain_history(self) -> None:
+        path = self._rain_history_path()
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                self._rain_history = {
+                    str(sn): {str(d): float(v) for d, v in days.items()}
+                    for sn, days in data.items()
+                    if isinstance(days, dict)
+                }
+                total_days = sum(len(d) for d in self._rain_history.values())
+                self.logger.debug(
+                    "Rain history loaded: %d station(s), %d day entries",
+                    len(self._rain_history), total_days,
+                )
+        except FileNotFoundError:
+            self.logger.debug("Rain history file not found (first run): %s", path)
+        except Exception:
+            self.logger.exception("Failed to load rain history from %s", path)
+
+    def _save_rain_history(self) -> None:
+        if not self._rain_history_dirty:
+            return
+        path = self._rain_history_path()
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            tmp = path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(self._rain_history, f, indent=1, sort_keys=True)
+            os.replace(tmp, path)
+            self._rain_history_dirty = False
+        except Exception:
+            self.logger.exception("Failed to save rain history to %s", path)
+
+    def _record_rain_history(self, sn: str, date_str: str, mm: float) -> None:
+        hist = self._rain_history.setdefault(sn, {})
+        # Never let a value shrink for a past day (protects against a hub reset
+        # mid-day overwriting an already-captured total with a smaller number).
+        today_str = datetime.date.today().isoformat()
+        existing = hist.get(date_str)
+        if date_str != today_str and existing is not None and mm < existing:
+            return
+        if existing is None or abs(existing - mm) >= 0.001:
+            hist[date_str] = round(mm, 3)
+            self._rain_history_dirty = True
+
+    def _update_rain_history(
+        self, sn: str, today_str: str, today_mm: float
+    ) -> tuple[float, float]:
+        """Record today's running total and return (last-7-day, last-30-day) sums in mm.
+
+        Windows are rolling and include today: week = today + previous 6 days,
+        month = today + previous 29 days.
+        """
+        self._record_rain_history(sn, today_str, today_mm)
+        hist = self._rain_history.setdefault(sn, {})
+
+        today = datetime.date.fromisoformat(today_str)
+        cutoff = (today - datetime.timedelta(days=31)).isoformat()
+        for d in [d for d in hist if d < cutoff]:
+            del hist[d]
+            self._rain_history_dirty = True
+
+        week_start = (today - datetime.timedelta(days=6)).isoformat()
+        month_start = (today - datetime.timedelta(days=29)).isoformat()
+        week_mm = sum(v for d, v in hist.items() if d >= week_start)
+        month_mm = sum(v for d, v in hist.items() if d >= month_start)
+
+        self._save_rain_history()
+        return week_mm, month_mm
+
+    # -------------------------------------------------------------------------
     # Async listener management
     # -------------------------------------------------------------------------
 
@@ -455,6 +546,10 @@ class Plugin(indigo.PluginBase):
         if sn in self._discovered:
             return  # pyweatherflowudp can fire this event more than once per device
         self._discovered[sn] = device
+        # Clear any "not discovered" warning for this serial so it can be re-issued
+        # if the device disappears again, and so the warning doesn't persist after
+        # the user fixes their device config.
+        self._undiscovered_warned.discard(sn)
         self.logger.info("Discovered WeatherFlow device: %s  model=%s", sn, device.model)
 
         # If the Indigo device is configured as web-only, skip UDP subscriptions
@@ -655,6 +750,7 @@ class Plugin(indigo.PluginBase):
             rain_yesterday_mm: float | None = None
             prev_date = self._rain_date.get(sn)
             is_new_day = False
+            rollover_date: str | None = None
 
             if prev_date is None:
                 # First observation this session — check if the day changed since we last ran
@@ -669,6 +765,7 @@ class Plugin(indigo.PluginBase):
                     except Exception:
                         rain_yesterday_mm = 0.0
                     is_new_day = True
+                    rollover_date = stored_date
                     self.logger.info(
                         "%s: new day since last run (%s → %s), yesterday rain=%.2f mm",
                         sn, stored_date, today_str, rain_yesterday_mm,
@@ -681,6 +778,7 @@ class Plugin(indigo.PluginBase):
                 except Exception:
                     rain_yesterday_mm = 0.0
                 is_new_day = True
+                rollover_date = prev_date
                 self.logger.info(
                     "%s: new day (%s → %s), yesterday rain=%.2f mm",
                     sn, prev_date, today_str, rain_yesterday_mm,
@@ -725,6 +823,17 @@ class Plugin(indigo.PluginBase):
                     rain_today_mm = prior_mm + rain_prev_min_mm
                     rain_source = "accumulated"
 
+            # --- Rolling 7/30-day rain totals (from persisted daily history) ---
+            rain_lastweek_mm: float | None = None
+            rain_lastmonth_mm: float | None = None
+            if isinstance(device, SkySensorType):
+                if is_new_day and rollover_date and rain_yesterday_mm is not None:
+                    self._record_rain_history(sn, rollover_date, rain_yesterday_mm)
+                if rain_today_mm is not None:
+                    rain_lastweek_mm, rain_lastmonth_mm = self._update_rain_history(
+                        sn, today_str, rain_today_mm
+                    )
+
             # --- Build and push states ---
             altitude_qty = self._get_altitude(dev)
             unit_prefs = _get_unit_prefs(dev)
@@ -733,6 +842,8 @@ class Plugin(indigo.PluginBase):
                 rain_today_mm=rain_today_mm,
                 rain_yesterday_mm=rain_yesterday_mm,
                 rain_source=rain_source,
+                rain_lastweek_mm=rain_lastweek_mm,
+                rain_lastmonth_mm=rain_lastmonth_mm,
             )
             if states:
                 self._safe_update_states(dev, states)
@@ -1333,7 +1444,34 @@ class Plugin(indigo.PluginBase):
         if missing:
             await self._discover_stations(api_token)
 
+        # Serials currently broadcasting via UDP.  Used below to detect devices that
+        # are configured in Indigo but no longer present on the network (e.g. a sensor
+        # that has been physically replaced with a new unit).
+        discovered_st = {sn for sn in self._discovered if sn.startswith("ST")}
+
         for sn in sn_list:
+            # If other ST- devices ARE being discovered via UDP but this serial is not,
+            # the physical device has likely been replaced.  Skip web polling to avoid
+            # a permanent "Stale data" / red-device state, and log a single actionable
+            # warning telling the user which serial to configure instead.
+            if discovered_st and sn not in discovered_st:
+                if sn not in self._undiscovered_warned:
+                    dev_id = self._serial_to_dev_id.get(sn)
+                    dev_name = (
+                        indigo.devices[dev_id].name
+                        if dev_id is not None and dev_id in indigo.devices
+                        else sn
+                    )
+                    alternatives = ", ".join(sorted(discovered_st))
+                    self.logger.warning(
+                        "%s (%s): serial not found via UDP — station data is permanently "
+                        "stale. The device may have been replaced. Active sensor(s) on "
+                        "this network: %s. Edit Device and update the serial number.",
+                        dev_name, sn, alternatives,
+                    )
+                    self._undiscovered_warned.add(sn)
+                continue  # skip web poll for this dead serial
+
             station_id = self._station_id_map.get(sn)
             if station_id is None:
                 self.logger.debug("%s: station_id not found — check token and account", sn)
@@ -1700,7 +1838,29 @@ class Plugin(indigo.PluginBase):
                     data_age = None
 
         if data_age is not None and data_age > _STALE_SECS:
-            # Determine severity based on total stale duration
+            # Before marking the device red: check whether local UDP is still flowing.
+            # The WeatherFlow cloud (/observations/stn) can lag many hours behind the
+            # hub's local broadcast — e.g. after the hub reconnects to the internet
+            # following an outage. If UDP obs_st packets have arrived in the last 5
+            # minutes, the device is genuinely online; the cloud will catch up on its
+            # own. Skip the web write silently rather than turning the device red.
+            # Web-only devices (no UDP path) bypass this check and always use the
+            # cloud staleness gate.
+            if not dev.pluginProps.get("webOnly", False):
+                _sn_check = dev.pluginProps.get("serialNumber", "")
+                _wf_check = self._discovered.get(_sn_check)
+                if _wf_check is not None:
+                    _last = getattr(_wf_check, "_last_report", None)
+                    if _last is not None and (now - _last) < 300:
+                        self.logger.debug(
+                            "%s: web data is %.0f min old but UDP active (last %.0f s ago)"
+                            " — skipping web update, not marking stale",
+                            dev.name, data_age / 60, now - _last,
+                        )
+                        return  # device is online via UDP; cloud lag is not our problem
+
+            # UDP is not active (or this is a web-only device) — genuine stale/offline.
+            # Determine severity based on total stale duration.
             stale_duration = now - self._web_stale_since.get(dev_id, now - data_age)
             if stale_duration >= _OFFLINE_SECS:
                 error_msg = "Offline"
@@ -2163,6 +2323,8 @@ def _build_observation_states(
     rain_today_mm: float | None = None,
     rain_yesterday_mm: float | None = None,
     rain_source: str = "",
+    rain_lastweek_mm: float | None = None,
+    rain_lastmonth_mm: float | None = None,
 ) -> list[dict]:
     if unit_prefs is None:
         unit_prefs = {}
@@ -2240,6 +2402,12 @@ def _build_observation_states(
         if rain_today_mm is not None:
             _add_u(states, "rain_today_local", rain_today_mm * _UNIT_MM, "rain", unit_prefs)
             states.append({"key": "rain_today_local_raw_mm", "value": round(rain_today_mm, 3)})
+
+        # Rolling multi-day totals computed from the persisted daily history.
+        if rain_lastweek_mm is not None:
+            _add_u(states, "rain_lastweek", rain_lastweek_mm * _UNIT_MM, "rain", unit_prefs)
+        if rain_lastmonth_mm is not None:
+            _add_u(states, "rain_lastmonth", rain_lastmonth_mm * _UNIT_MM, "rain", unit_prefs)
 
         # Track the date so midnight rollover detection survives restarts
         states.append({"key": "rain_today_date", "value": datetime.date.today().isoformat()})

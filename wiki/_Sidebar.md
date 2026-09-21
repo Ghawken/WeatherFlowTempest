@@ -38,6 +38,8 @@
 
 **Releases**
 * [Changelog](https://github.com/Ghawken/WeatherFlowTempest/wiki/Changelog)
+* [2.6.0](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.6.0)
+* [2.5.9](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.9)
 * [2.5.8](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.8)
 * [2.5.7](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.7)
 * [2.5.6](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.6)
