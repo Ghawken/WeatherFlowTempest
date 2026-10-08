@@ -328,6 +328,16 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 				<TriggerLabel>Rain Last 7 Days (rolling total, includes today)</TriggerLabel>
 				<ControlPageLabel>Rain Last Week</ControlPageLabel>
 			</State>
+			<State id="rain_prevmonth">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Previous 30 Days (rolling, days 30-59 back)</TriggerLabel>
+				<ControlPageLabel>Rain Prev Month</ControlPageLabel>
+			</State>
+			<State id="rain_prevweek">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Previous 7 Days (rolling, days 7-13 back)</TriggerLabel>
+				<ControlPageLabel>Rain Prev Week</ControlPageLabel>
+			</State>
 			<State id="rain_rate">
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Rain Rate</TriggerLabel>
@@ -669,6 +679,16 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Rain Last 7 Days (rolling total, includes today)</TriggerLabel>
 				<ControlPageLabel>Rain Last Week</ControlPageLabel>
+			</State>
+			<State id="rain_prevmonth">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Previous 30 Days (rolling, days 30-59 back)</TriggerLabel>
+				<ControlPageLabel>Rain Prev Month</ControlPageLabel>
+			</State>
+			<State id="rain_prevweek">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Previous 7 Days (rolling, days 7-13 back)</TriggerLabel>
+				<ControlPageLabel>Rain Prev Week</ControlPageLabel>
 			</State>
 			<State id="rain_rate">
 				<ValueType>Float</ValueType>

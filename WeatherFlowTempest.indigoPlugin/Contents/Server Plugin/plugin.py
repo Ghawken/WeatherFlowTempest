@@ -485,28 +485,39 @@ class Plugin(indigo.PluginBase):
 
     def _update_rain_history(
         self, sn: str, today_str: str, today_mm: float
-    ) -> tuple[float, float]:
-        """Record today's running total and return (last-7-day, last-30-day) sums in mm.
+    ) -> tuple[float, float, float, float]:
+        """Record today's running total and return rolling rain sums in mm:
+        (last 7 days, last 30 days, previous 7 days, previous 30 days).
 
-        Windows are rolling and include today: week = today + previous 6 days,
-        month = today + previous 29 days.
+        Windows: week = today + previous 6 days; month = today + previous
+        29 days; prevweek = days 7-13 back; prevmonth = days 30-59 back.
         """
         self._record_rain_history(sn, today_str, today_mm)
         hist = self._rain_history.setdefault(sn, {})
 
         today = datetime.date.fromisoformat(today_str)
-        cutoff = (today - datetime.timedelta(days=31)).isoformat()
+        # Keep 62 days so the previous-30-day window (days 30-59 back) is covered
+        cutoff = (today - datetime.timedelta(days=62)).isoformat()
         for d in [d for d in hist if d < cutoff]:
             del hist[d]
             self._rain_history_dirty = True
 
         week_start = (today - datetime.timedelta(days=6)).isoformat()
         month_start = (today - datetime.timedelta(days=29)).isoformat()
+        prevweek_start = (today - datetime.timedelta(days=13)).isoformat()
+        prevmonth_start = (today - datetime.timedelta(days=59)).isoformat()
+
         week_mm = sum(v for d, v in hist.items() if d >= week_start)
         month_mm = sum(v for d, v in hist.items() if d >= month_start)
+        prevweek_mm = sum(
+            v for d, v in hist.items() if prevweek_start <= d < week_start
+        )
+        prevmonth_mm = sum(
+            v for d, v in hist.items() if prevmonth_start <= d < month_start
+        )
 
         self._save_rain_history()
-        return week_mm, month_mm
+        return week_mm, month_mm, prevweek_mm, prevmonth_mm
 
     # -------------------------------------------------------------------------
     # Async listener management
@@ -832,13 +843,18 @@ class Plugin(indigo.PluginBase):
             # --- Rolling 7/30-day rain totals (from persisted daily history) ---
             rain_lastweek_mm: float | None = None
             rain_lastmonth_mm: float | None = None
+            rain_prevweek_mm: float | None = None
+            rain_prevmonth_mm: float | None = None
             if isinstance(device, SkySensorType):
                 if is_new_day and rollover_date and rain_yesterday_mm is not None:
                     self._record_rain_history(sn, rollover_date, rain_yesterday_mm)
                 if rain_today_mm is not None:
-                    rain_lastweek_mm, rain_lastmonth_mm = self._update_rain_history(
-                        sn, today_str, rain_today_mm
-                    )
+                    (
+                        rain_lastweek_mm,
+                        rain_lastmonth_mm,
+                        rain_prevweek_mm,
+                        rain_prevmonth_mm,
+                    ) = self._update_rain_history(sn, today_str, rain_today_mm)
 
             # --- Build and push states ---
             altitude_qty = self._get_altitude(dev)
@@ -850,6 +866,8 @@ class Plugin(indigo.PluginBase):
                 rain_source=rain_source,
                 rain_lastweek_mm=rain_lastweek_mm,
                 rain_lastmonth_mm=rain_lastmonth_mm,
+                rain_prevweek_mm=rain_prevweek_mm,
+                rain_prevmonth_mm=rain_prevmonth_mm,
             )
             if states:
                 self._safe_update_states(dev, states)
@@ -2331,6 +2349,8 @@ def _build_observation_states(
     rain_source: str = "",
     rain_lastweek_mm: float | None = None,
     rain_lastmonth_mm: float | None = None,
+    rain_prevweek_mm: float | None = None,
+    rain_prevmonth_mm: float | None = None,
 ) -> list[dict]:
     if unit_prefs is None:
         unit_prefs = {}
@@ -2414,6 +2434,10 @@ def _build_observation_states(
             _add_u(states, "rain_lastweek", rain_lastweek_mm * _UNIT_MM, "rain", unit_prefs)
         if rain_lastmonth_mm is not None:
             _add_u(states, "rain_lastmonth", rain_lastmonth_mm * _UNIT_MM, "rain", unit_prefs)
+        if rain_prevweek_mm is not None:
+            _add_u(states, "rain_prevweek", rain_prevweek_mm * _UNIT_MM, "rain", unit_prefs)
+        if rain_prevmonth_mm is not None:
+            _add_u(states, "rain_prevmonth", rain_prevmonth_mm * _UNIT_MM, "rain", unit_prefs)
 
         # Track the date so midnight rollover detection survives restarts
         states.append({"key": "rain_today_date", "value": datetime.date.today().isoformat()})

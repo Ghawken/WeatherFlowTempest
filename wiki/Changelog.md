@@ -10,6 +10,8 @@ All notable changes to the WeatherFlow Tempest plugin are listed here. Each rele
 
 | Version | Date | Summary |
 |---|---|---|
+| [**2.6.2**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.6.2) | 2026-10-09 | New `rain_prevweek` (days 7–13 back) and `rain_prevmonth` (days 30–59 back) comparison states — the rolling window before `rain_lastweek`/`rain_lastmonth`; rain history retention extended to 62 days |
+| [**2.6.1**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.6.1) | 2026-10-08 | Device state lists in trigger/condition/control-page menus now sorted alphabetically; new `last_report_local` state showing last report time in local time zone with system locale formatting |
 | [**2.6.0**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.6.0) | 2026-09-21 | New `rain_lastweek` and `rain_lastmonth` states — rolling 7-day and 30-day rain totals calculated by the plugin and persisted to disk; ideal for irrigation logic. Tempest and Sky devices, respects rainfall unit preference |
 | [**2.5.9**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.9) | 2026-06-21 | Two false "Stale data" fixes: (1) replaced sensor — skip web poll for serials no longer broadcasting UDP, log actionable warning; (2) cloud pipeline lag — skip stale mark when hub is active via UDP, preventing false red-device after internet outage reconnect |
 | [**2.5.8**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.5.8) | 2026-06-08 | Fix Public Tempest Station ignoring unit preferences (always showed metric); fix `last_strike_distance` / `last_strike_time` not updating during thunderstorms; promote strike log to INFO; add Distance Display (km/mi) to Tempest/Sky/Air ConfigUI |
