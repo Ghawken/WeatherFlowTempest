@@ -148,189 +148,100 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 		</ConfigUI>
 
 		<States>
-			<!-- Primary weather measurements -->
+			<State id="air_density">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Air Density (kg/m³)</TriggerLabel>
+				<ControlPageLabel>Air Density kg/m³</ControlPageLabel>
+			</State>
 			<State id="air_temperature">
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Air Temperature</TriggerLabel>
 				<ControlPageLabel>Air Temp</ControlPageLabel>
 			</State>
-			<State id="temperature">
+			<State id="battery">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Temperature (alias for air_temperature)</TriggerLabel>
-				<ControlPageLabel>Temperature</ControlPageLabel>
+				<TriggerLabel>Battery Voltage (V)</TriggerLabel>
+				<ControlPageLabel>Battery V</ControlPageLabel>
 			</State>
-			<State id="dew_point_temperature">
+			<State id="battery_percent">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Dew Point Temperature</TriggerLabel>
-				<ControlPageLabel>Dew Point</ControlPageLabel>
-			</State>
-			<State id="wet_bulb_temperature">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wet Bulb Temperature</TriggerLabel>
-				<ControlPageLabel>Wet Bulb</ControlPageLabel>
-			</State>
-			<State id="feels_like_temperature">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Feels Like Temperature</TriggerLabel>
-				<ControlPageLabel>Feels Like</ControlPageLabel>
-			</State>
-			<State id="wind_chill_temperature">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Chill Temperature</TriggerLabel>
-				<ControlPageLabel>Wind Chill</ControlPageLabel>
-			</State>
-			<State id="heat_index">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Heat Index</TriggerLabel>
-				<ControlPageLabel>Heat Index</ControlPageLabel>
-			</State>
-			<State id="delta_t">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Delta T</TriggerLabel>
-				<ControlPageLabel>Delta T</ControlPageLabel>
-			</State>
-
-			<!-- Atmospheric -->
-			<State id="relative_humidity">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Relative Humidity (%)</TriggerLabel>
-				<ControlPageLabel>Humidity %</ControlPageLabel>
-			</State>
-			<State id="station_pressure">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Station Pressure</TriggerLabel>
-				<ControlPageLabel>Pressure</ControlPageLabel>
-			</State>
-			<State id="sea_level_pressure">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Sea Level Pressure</TriggerLabel>
-				<ControlPageLabel>Sea Level Pressure</ControlPageLabel>
+				<TriggerLabel>Battery Level (%)</TriggerLabel>
+				<ControlPageLabel>Battery %</ControlPageLabel>
 			</State>
 			<State id="cloud_base">
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Cloud Base Altitude</TriggerLabel>
 				<ControlPageLabel>Cloud Base</ControlPageLabel>
 			</State>
+			<State id="conditions">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Weather Conditions</TriggerLabel>
+				<ControlPageLabel>Conditions</ControlPageLabel>
+			</State>
+			<State id="delta_t">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Delta T</TriggerLabel>
+				<ControlPageLabel>Delta T</ControlPageLabel>
+			</State>
+			<State id="deviceStatus">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Device Status</TriggerLabel>
+				<ControlPageLabel>Status</ControlPageLabel>
+			</State>
+			<State id="dew_point_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Dew Point Temperature</TriggerLabel>
+				<ControlPageLabel>Dew Point</ControlPageLabel>
+			</State>
+			<State id="feels_like_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Feels Like Temperature</TriggerLabel>
+				<ControlPageLabel>Feels Like</ControlPageLabel>
+			</State>
+			<State id="firmware_revision">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Firmware Revision</TriggerLabel>
+				<ControlPageLabel>Firmware</ControlPageLabel>
+			</State>
 			<State id="freezing_level">
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Freezing Level Altitude</TriggerLabel>
 				<ControlPageLabel>Freezing Level</ControlPageLabel>
 			</State>
-			<State id="vapor_pressure">
+			<State id="heat_index">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Vapor Pressure</TriggerLabel>
-				<ControlPageLabel>Vapor Pressure</ControlPageLabel>
+				<TriggerLabel>Heat Index</TriggerLabel>
+				<ControlPageLabel>Heat Index</ControlPageLabel>
 			</State>
-			<State id="air_density">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Air Density (kg/m³)</TriggerLabel>
-				<ControlPageLabel>Air Density kg/m³</ControlPageLabel>
+			<State id="hub_rssi">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Hub RSSI (dBm)</TriggerLabel>
+				<ControlPageLabel>Hub RSSI dBm</ControlPageLabel>
 			</State>
-
-			<!-- Light and radiation -->
+			<State id="hub_sn">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Hub Serial Number</TriggerLabel>
+				<ControlPageLabel>Hub SN</ControlPageLabel>
+			</State>
 			<State id="illuminance">
 				<ValueType>Integer</ValueType>
 				<TriggerLabel>Illuminance (lux)</TriggerLabel>
 				<ControlPageLabel>Illuminance lux</ControlPageLabel>
-			</State>
-			<State id="solar_radiation">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Solar Radiation (W/m²)</TriggerLabel>
-				<ControlPageLabel>Solar Rad W/m²</ControlPageLabel>
-			</State>
-			<State id="uv">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>UV Index</TriggerLabel>
-				<ControlPageLabel>UV Index</ControlPageLabel>
-			</State>
-
-			<!-- Precipitation -->
-			<State id="rain_accumulation_previous_minute">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Accumulation Previous Minute</TriggerLabel>
-				<ControlPageLabel>Rain Accum</ControlPageLabel>
-			</State>
-			<State id="rain_rate">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Rate</TriggerLabel>
-				<ControlPageLabel>Rain Rate</ControlPageLabel>
-			</State>
-			<State id="rain_intensity">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Rain Intensity</TriggerLabel>
-				<ControlPageLabel>Rain Intensity</ControlPageLabel>
-			</State>
-			<State id="rain_today">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Today (since local midnight)</TriggerLabel>
-				<ControlPageLabel>Rain Today</ControlPageLabel>
-			</State>
-			<State id="rain_yesterday">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Yesterday</TriggerLabel>
-				<ControlPageLabel>Rain Yesterday</ControlPageLabel>
-			</State>
-			<State id="rain_today_date">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Rain Today Date (YYYY-MM-DD)</TriggerLabel>
-				<ControlPageLabel>Rain Today Date</ControlPageLabel>
-			</State>
-			<State id="rain_today_raw_mm">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Today Raw (internal)</TriggerLabel>
-				<ControlPageLabel>Rain Today</ControlPageLabel>
-			</State>
-			<State id="rain_today_local">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Today Local (device source, not rain-check corrected)</TriggerLabel>
-				<ControlPageLabel>Rain Today Local</ControlPageLabel>
-			</State>
-			<State id="rain_today_local_raw_mm">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Today Local Raw (local device accumulation only)</TriggerLabel>
-				<ControlPageLabel>Rain Today Local</ControlPageLabel>
-			</State>
-			<State id="rain_yesterday_local">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Yesterday Local (device source, not rain-check corrected)</TriggerLabel>
-				<ControlPageLabel>Rain Yesterday Local</ControlPageLabel>
-			</State>
-			<State id="rain_lastweek">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Last 7 Days (rolling total, includes today)</TriggerLabel>
-				<ControlPageLabel>Rain Last Week</ControlPageLabel>
-			</State>
-			<State id="rain_lastmonth">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Last 30 Days (rolling total, includes today)</TriggerLabel>
-				<ControlPageLabel>Rain Last Month</ControlPageLabel>
-			</State>
-			<State id="rain_today_source">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Rain Today Local Source (hub = device direct / accumulated = per-minute fallback)</TriggerLabel>
-				<ControlPageLabel>Rain Local Source</ControlPageLabel>
-			</State>
-			<State id="precipitation_type">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Precipitation Type</TriggerLabel>
-				<ControlPageLabel>Precip Type</ControlPageLabel>
 			</State>
 			<State id="last_rain_start">
 				<ValueType>String</ValueType>
 				<TriggerLabel>Last Rain Start Time</TriggerLabel>
 				<ControlPageLabel>Last Rain Start</ControlPageLabel>
 			</State>
-
-			<!-- Lightning -->
-			<State id="lightning_strike_count">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Lightning Strike Count</TriggerLabel>
-				<ControlPageLabel>Lightning Count</ControlPageLabel>
+			<State id="last_report">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last Report Time (UTC)</TriggerLabel>
+				<ControlPageLabel>Last Report</ControlPageLabel>
 			</State>
-			<State id="lightning_strike_average_distance">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Lightning Strike Average Distance</TriggerLabel>
-				<ControlPageLabel>Lightning Dist</ControlPageLabel>
+			<State id="last_report_local">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last Report Time (Local)</TriggerLabel>
+				<ControlPageLabel>Last Report Local</ControlPageLabel>
 			</State>
 			<State id="last_strike_distance">
 				<ValueType>Float</ValueType>
@@ -347,32 +258,215 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 				<TriggerLabel>Last Lightning Strike Time (UTC)</TriggerLabel>
 				<ControlPageLabel>Last Strike Time</ControlPageLabel>
 			</State>
-
-			<!-- Wind -->
-			<State id="wind_sample_interval">
+			<State id="lightning_count_last_1hr">
 				<ValueType>Integer</ValueType>
-				<TriggerLabel>Wind Sample Interval (seconds)</TriggerLabel>
-				<ControlPageLabel>Wind Sample s</ControlPageLabel>
+				<TriggerLabel>Lightning Strikes Last 1 Hour</TriggerLabel>
+				<ControlPageLabel>Lightning 1hr</ControlPageLabel>
 			</State>
-			<State id="wind_speed">
+			<State id="lightning_count_last_3hr">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Lightning Strikes Last 3 Hours</TriggerLabel>
+				<ControlPageLabel>Lightning 3hr</ControlPageLabel>
+			</State>
+			<State id="lightning_strike_average_distance">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Speed</TriggerLabel>
-				<ControlPageLabel>Wind Speed</ControlPageLabel>
+				<TriggerLabel>Lightning Strike Average Distance</TriggerLabel>
+				<ControlPageLabel>Lightning Dist</ControlPageLabel>
+			</State>
+			<State id="lightning_strike_count">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Lightning Strike Count</TriggerLabel>
+				<ControlPageLabel>Lightning Count</ControlPageLabel>
+			</State>
+			<State id="power_save_mode">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Power Save Mode</TriggerLabel>
+				<ControlPageLabel>Power Mode</ControlPageLabel>
+			</State>
+			<State id="precipitation_type">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Precipitation Type</TriggerLabel>
+				<ControlPageLabel>Precip Type</ControlPageLabel>
+			</State>
+			<State id="rain_accumulation_previous_minute">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Accumulation Previous Minute</TriggerLabel>
+				<ControlPageLabel>Rain Accum</ControlPageLabel>
+			</State>
+			<State id="rain_check">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Rain Check Status (WeatherFlow precipitation analysis)</TriggerLabel>
+				<ControlPageLabel>Rain Check</ControlPageLabel>
+			</State>
+			<State id="rain_duration_today">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Rain Duration Today (minutes)</TriggerLabel>
+				<ControlPageLabel>Rain Min Today</ControlPageLabel>
+			</State>
+			<State id="rain_duration_yesterday">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Rain Duration Yesterday (minutes)</TriggerLabel>
+				<ControlPageLabel>Rain Min Yesterday</ControlPageLabel>
+			</State>
+			<State id="rain_intensity">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Rain Intensity</TriggerLabel>
+				<ControlPageLabel>Rain Intensity</ControlPageLabel>
+			</State>
+			<State id="rain_last_1hr">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Last 1 Hour</TriggerLabel>
+				<ControlPageLabel>Rain 1hr</ControlPageLabel>
+			</State>
+			<State id="rain_lastmonth">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Last 30 Days (rolling total, includes today)</TriggerLabel>
+				<ControlPageLabel>Rain Last Month</ControlPageLabel>
+			</State>
+			<State id="rain_lastweek">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Last 7 Days (rolling total, includes today)</TriggerLabel>
+				<ControlPageLabel>Rain Last Week</ControlPageLabel>
+			</State>
+			<State id="rain_rate">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Rate</TriggerLabel>
+				<ControlPageLabel>Rain Rate</ControlPageLabel>
+			</State>
+			<State id="rain_today">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Today (since local midnight)</TriggerLabel>
+				<ControlPageLabel>Rain Today</ControlPageLabel>
+			</State>
+			<State id="rain_today_date">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Rain Today Date (YYYY-MM-DD)</TriggerLabel>
+				<ControlPageLabel>Rain Today Date</ControlPageLabel>
+			</State>
+			<State id="rain_today_local">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Today Local (device source, not rain-check corrected)</TriggerLabel>
+				<ControlPageLabel>Rain Today Local</ControlPageLabel>
+			</State>
+			<State id="rain_today_local_raw_mm">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Today Local Raw (local device accumulation only)</TriggerLabel>
+				<ControlPageLabel>Rain Today Local</ControlPageLabel>
+			</State>
+			<State id="rain_today_raw_mm">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Today Raw (internal)</TriggerLabel>
+				<ControlPageLabel>Rain Today</ControlPageLabel>
+			</State>
+			<State id="rain_today_source">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Rain Today Local Source (hub = device direct / accumulated = per-minute fallback)</TriggerLabel>
+				<ControlPageLabel>Rain Local Source</ControlPageLabel>
+			</State>
+			<State id="rain_yesterday">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Yesterday</TriggerLabel>
+				<ControlPageLabel>Rain Yesterday</ControlPageLabel>
+			</State>
+			<State id="rain_yesterday_local">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Yesterday Local (device source, not rain-check corrected)</TriggerLabel>
+				<ControlPageLabel>Rain Yesterday Local</ControlPageLabel>
+			</State>
+			<State id="relative_humidity">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Relative Humidity (%)</TriggerLabel>
+				<ControlPageLabel>Humidity %</ControlPageLabel>
+			</State>
+			<State id="report_interval">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Report Interval (minutes)</TriggerLabel>
+				<ControlPageLabel>Report Interval</ControlPageLabel>
+			</State>
+			<State id="rssi">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>RSSI (dBm)</TriggerLabel>
+				<ControlPageLabel>RSSI dBm</ControlPageLabel>
+			</State>
+			<State id="sea_level_pressure">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Sea Level Pressure</TriggerLabel>
+				<ControlPageLabel>Sea Level Pressure</ControlPageLabel>
+			</State>
+			<State id="sensor_status">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Sensor Status</TriggerLabel>
+				<ControlPageLabel>Sensor Status</ControlPageLabel>
+			</State>
+			<State id="solar_radiation">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Solar Radiation (W/m²)</TriggerLabel>
+				<ControlPageLabel>Solar Rad W/m²</ControlPageLabel>
+			</State>
+			<State id="station_pressure">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Station Pressure</TriggerLabel>
+				<ControlPageLabel>Pressure</ControlPageLabel>
+			</State>
+			<State id="temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Temperature (alias for air_temperature)</TriggerLabel>
+				<ControlPageLabel>Temperature</ControlPageLabel>
+			</State>
+			<State id="unit_pressure">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Pressure Unit</TriggerLabel>
+				<ControlPageLabel>Pressure Unit</ControlPageLabel>
+			</State>
+			<State id="unit_rain">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Rainfall Unit</TriggerLabel>
+				<ControlPageLabel>Rain Unit</ControlPageLabel>
+			</State>
+			<State id="unit_temperature">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Temperature Unit</TriggerLabel>
+				<ControlPageLabel>Temp Unit</ControlPageLabel>
+			</State>
+			<State id="unit_wind">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Wind Speed Unit</TriggerLabel>
+				<ControlPageLabel>Wind Unit</ControlPageLabel>
+			</State>
+			<State id="up_since">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Up Since (UTC)</TriggerLabel>
+				<ControlPageLabel>Up Since</ControlPageLabel>
+			</State>
+			<State id="uv">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>UV Index</TriggerLabel>
+				<ControlPageLabel>UV Index</ControlPageLabel>
+			</State>
+			<State id="vapor_pressure">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Vapor Pressure</TriggerLabel>
+				<ControlPageLabel>Vapor Pressure</ControlPageLabel>
+			</State>
+			<State id="weather_icon">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Weather Icon Name</TriggerLabel>
+				<ControlPageLabel>Weather Icon</ControlPageLabel>
+			</State>
+			<State id="wet_bulb_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wet Bulb Temperature</TriggerLabel>
+				<ControlPageLabel>Wet Bulb</ControlPageLabel>
 			</State>
 			<State id="wind_average">
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Wind Speed Average</TriggerLabel>
 				<ControlPageLabel>Wind Avg</ControlPageLabel>
 			</State>
-			<State id="wind_gust">
+			<State id="wind_chill_temperature">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Gust</TriggerLabel>
-				<ControlPageLabel>Wind Gust</ControlPageLabel>
-			</State>
-			<State id="wind_lull">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Lull</TriggerLabel>
-				<ControlPageLabel>Wind Lull</ControlPageLabel>
+				<TriggerLabel>Wind Chill Temperature</TriggerLabel>
+				<ControlPageLabel>Wind Chill</ControlPageLabel>
 			</State>
 			<State id="wind_direction">
 				<ValueType>Float</ValueType>
@@ -394,137 +488,25 @@ Note: the WeatherFlow REST API only serves stations associated with the token �
 				<TriggerLabel>Wind Direction Cardinal</TriggerLabel>
 				<ControlPageLabel>Wind Dir</ControlPageLabel>
 			</State>
-
-			<!-- Reporting -->
-			<State id="report_interval">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Report Interval (minutes)</TriggerLabel>
-				<ControlPageLabel>Report Interval</ControlPageLabel>
-			</State>
-
-			<!-- Rain Check -->
-			<State id="rain_check">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Rain Check Status (WeatherFlow precipitation analysis)</TriggerLabel>
-				<ControlPageLabel>Rain Check</ControlPageLabel>
-			</State>
-
-			<!-- Battery and power -->
-			<State id="battery">
+			<State id="wind_gust">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Battery Voltage (V)</TriggerLabel>
-				<ControlPageLabel>Battery V</ControlPageLabel>
+				<TriggerLabel>Wind Gust</TriggerLabel>
+				<ControlPageLabel>Wind Gust</ControlPageLabel>
 			</State>
-			<State id="battery_percent">
+			<State id="wind_lull">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Battery Level (%)</TriggerLabel>
-				<ControlPageLabel>Battery %</ControlPageLabel>
+				<TriggerLabel>Wind Lull</TriggerLabel>
+				<ControlPageLabel>Wind Lull</ControlPageLabel>
 			</State>
-			<State id="power_save_mode">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Power Save Mode</TriggerLabel>
-				<ControlPageLabel>Power Mode</ControlPageLabel>
-			</State>
-
-			<!-- Active unit indicators -->
-			<State id="unit_temperature">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Active Temperature Unit</TriggerLabel>
-				<ControlPageLabel>Temp Unit</ControlPageLabel>
-			</State>
-			<State id="unit_pressure">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Active Pressure Unit</TriggerLabel>
-				<ControlPageLabel>Pressure Unit</ControlPageLabel>
-			</State>
-			<State id="unit_wind">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Active Wind Speed Unit</TriggerLabel>
-				<ControlPageLabel>Wind Unit</ControlPageLabel>
-			</State>
-			<State id="unit_rain">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Active Rainfall Unit</TriggerLabel>
-				<ControlPageLabel>Rain Unit</ControlPageLabel>
-			</State>
-
-			<!-- Diagnostics -->
-			<State id="rssi">
+			<State id="wind_sample_interval">
 				<ValueType>Integer</ValueType>
-				<TriggerLabel>RSSI (dBm)</TriggerLabel>
-				<ControlPageLabel>RSSI dBm</ControlPageLabel>
+				<TriggerLabel>Wind Sample Interval (seconds)</TriggerLabel>
+				<ControlPageLabel>Wind Sample s</ControlPageLabel>
 			</State>
-			<State id="hub_rssi">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Hub RSSI (dBm)</TriggerLabel>
-				<ControlPageLabel>Hub RSSI dBm</ControlPageLabel>
-			</State>
-			<State id="firmware_revision">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Firmware Revision</TriggerLabel>
-				<ControlPageLabel>Firmware</ControlPageLabel>
-			</State>
-			<State id="hub_sn">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Hub Serial Number</TriggerLabel>
-				<ControlPageLabel>Hub SN</ControlPageLabel>
-			</State>
-			<State id="up_since">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Up Since (UTC)</TriggerLabel>
-				<ControlPageLabel>Up Since</ControlPageLabel>
-			</State>
-			<State id="last_report">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Last Report Time (UTC)</TriggerLabel>
-				<ControlPageLabel>Last Report</ControlPageLabel>
-			</State>
-			<State id="sensor_status">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Sensor Status</TriggerLabel>
-				<ControlPageLabel>Sensor Status</ControlPageLabel>
-			</State>
-			<State id="deviceStatus">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Device Status</TriggerLabel>
-				<ControlPageLabel>Status</ControlPageLabel>
-			</State>
-
-			<!-- Web API exclusive states -->
-			<State id="rain_last_1hr">
+			<State id="wind_speed">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Last 1 Hour</TriggerLabel>
-				<ControlPageLabel>Rain 1hr</ControlPageLabel>
-			</State>
-			<State id="rain_duration_today">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Rain Duration Today (minutes)</TriggerLabel>
-				<ControlPageLabel>Rain Min Today</ControlPageLabel>
-			</State>
-			<State id="rain_duration_yesterday">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Rain Duration Yesterday (minutes)</TriggerLabel>
-				<ControlPageLabel>Rain Min Yesterday</ControlPageLabel>
-			</State>
-			<State id="conditions">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Weather Conditions</TriggerLabel>
-				<ControlPageLabel>Conditions</ControlPageLabel>
-			</State>
-			<State id="weather_icon">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Weather Icon Name</TriggerLabel>
-				<ControlPageLabel>Weather Icon</ControlPageLabel>
-			</State>
-			<State id="lightning_count_last_1hr">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Lightning Strikes Last 1 Hour</TriggerLabel>
-				<ControlPageLabel>Lightning 1hr</ControlPageLabel>
-			</State>
-			<State id="lightning_count_last_3hr">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Lightning Strikes Last 3 Hours</TriggerLabel>
-				<ControlPageLabel>Lightning 3hr</ControlPageLabel>
+				<TriggerLabel>Wind Speed</TriggerLabel>
+				<ControlPageLabel>Wind Speed</ControlPageLabel>
 			</State>
 		</States>
 	</Device>
@@ -603,105 +585,105 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 		</ConfigUI>
 
 		<States>
-			<!-- Wind -->
-			<State id="wind_sample_interval">
+			<State id="battery">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Battery Voltage (V)</TriggerLabel>
+				<ControlPageLabel>Battery V</ControlPageLabel>
+			</State>
+			<State id="battery_percent">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Battery Level (%)</TriggerLabel>
+				<ControlPageLabel>Battery %</ControlPageLabel>
+			</State>
+			<State id="deviceStatus">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Device Status</TriggerLabel>
+				<ControlPageLabel>Status</ControlPageLabel>
+			</State>
+			<State id="firmware_revision">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Firmware Revision</TriggerLabel>
+				<ControlPageLabel>Firmware</ControlPageLabel>
+			</State>
+			<State id="hub_rssi">
 				<ValueType>Integer</ValueType>
-				<TriggerLabel>Wind Sample Interval (seconds)</TriggerLabel>
-				<ControlPageLabel>Wind Sample s</ControlPageLabel>
+				<TriggerLabel>Hub RSSI (dBm)</TriggerLabel>
+				<ControlPageLabel>Hub RSSI dBm</ControlPageLabel>
 			</State>
-			<State id="wind_speed">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Speed</TriggerLabel>
-				<ControlPageLabel>Wind Speed</ControlPageLabel>
-			</State>
-			<State id="wind_average">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Speed Average</TriggerLabel>
-				<ControlPageLabel>Wind Avg</ControlPageLabel>
-			</State>
-			<State id="wind_gust">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Gust</TriggerLabel>
-				<ControlPageLabel>Wind Gust</ControlPageLabel>
-			</State>
-			<State id="wind_lull">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Lull</TriggerLabel>
-				<ControlPageLabel>Wind Lull</ControlPageLabel>
-			</State>
-			<State id="wind_direction">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Direction (°)</TriggerLabel>
-				<ControlPageLabel>Wind Dir °</ControlPageLabel>
-			</State>
-			<State id="wind_direction_average">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Direction Average (°)</TriggerLabel>
-				<ControlPageLabel>Wind Dir Avg °</ControlPageLabel>
-			</State>
-			<State id="wind_direction_cardinal">
+			<State id="hub_sn">
 				<ValueType>String</ValueType>
-				<TriggerLabel>Wind Direction Cardinal</TriggerLabel>
-				<ControlPageLabel>Wind Dir</ControlPageLabel>
+				<TriggerLabel>Hub Serial Number</TriggerLabel>
+				<ControlPageLabel>Hub SN</ControlPageLabel>
 			</State>
-			<State id="wind_direction_average_cardinal">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Wind Direction Average Cardinal</TriggerLabel>
-				<ControlPageLabel>Wind Dir Avg</ControlPageLabel>
-			</State>
-
-			<!-- Light and UV -->
 			<State id="illuminance">
 				<ValueType>Integer</ValueType>
 				<TriggerLabel>Illuminance (lux)</TriggerLabel>
 				<ControlPageLabel>Illuminance lux</ControlPageLabel>
 			</State>
-			<State id="solar_radiation">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Solar Radiation (W/m²)</TriggerLabel>
-				<ControlPageLabel>Solar Rad W/m²</ControlPageLabel>
+			<State id="last_rain_start">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last Rain Start Time</TriggerLabel>
+				<ControlPageLabel>Last Rain Start</ControlPageLabel>
 			</State>
-			<State id="uv">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>UV Index</TriggerLabel>
-				<ControlPageLabel>UV Index</ControlPageLabel>
+			<State id="last_report">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last Report Time (UTC)</TriggerLabel>
+				<ControlPageLabel>Last Report</ControlPageLabel>
 			</State>
-
-			<!-- Precipitation -->
+			<State id="last_report_local">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last Report Time (Local)</TriggerLabel>
+				<ControlPageLabel>Last Report Local</ControlPageLabel>
+			</State>
+			<State id="power_save_mode">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Power Save Mode</TriggerLabel>
+				<ControlPageLabel>Power Mode</ControlPageLabel>
+			</State>
+			<State id="precipitation_type">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Precipitation Type</TriggerLabel>
+				<ControlPageLabel>Precip Type</ControlPageLabel>
+			</State>
 			<State id="rain_accumulation_previous_minute">
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Rain Accumulation Previous Minute</TriggerLabel>
 				<ControlPageLabel>Rain Accum</ControlPageLabel>
 			</State>
-			<State id="rain_rate">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Rate</TriggerLabel>
-				<ControlPageLabel>Rain Rate</ControlPageLabel>
+			<State id="rain_check">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Rain Check Status (WeatherFlow precipitation analysis)</TriggerLabel>
+				<ControlPageLabel>Rain Check</ControlPageLabel>
 			</State>
 			<State id="rain_intensity">
 				<ValueType>String</ValueType>
 				<TriggerLabel>Rain Intensity</TriggerLabel>
 				<ControlPageLabel>Rain Intensity</ControlPageLabel>
 			</State>
+			<State id="rain_lastmonth">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Last 30 Days (rolling total, includes today)</TriggerLabel>
+				<ControlPageLabel>Rain Last Month</ControlPageLabel>
+			</State>
+			<State id="rain_lastweek">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Last 7 Days (rolling total, includes today)</TriggerLabel>
+				<ControlPageLabel>Rain Last Week</ControlPageLabel>
+			</State>
+			<State id="rain_rate">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Rate</TriggerLabel>
+				<ControlPageLabel>Rain Rate</ControlPageLabel>
+			</State>
 			<State id="rain_today">
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Rain Today (since local midnight)</TriggerLabel>
 				<ControlPageLabel>Rain Today</ControlPageLabel>
 			</State>
-			<State id="rain_yesterday">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Yesterday</TriggerLabel>
-				<ControlPageLabel>Rain Yesterday</ControlPageLabel>
-			</State>
 			<State id="rain_today_date">
 				<ValueType>String</ValueType>
 				<TriggerLabel>Rain Today Date (YYYY-MM-DD)</TriggerLabel>
 				<ControlPageLabel>Rain Today Date</ControlPageLabel>
-			</State>
-			<State id="rain_today_raw_mm">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Today Raw (internal)</TriggerLabel>
-				<ControlPageLabel>Rain Today</ControlPageLabel>
 			</State>
 			<State id="rain_today_local">
 				<ValueType>Float</ValueType>
@@ -713,128 +695,120 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				<TriggerLabel>Rain Today Local Raw (local device accumulation only)</TriggerLabel>
 				<ControlPageLabel>Rain Today Local</ControlPageLabel>
 			</State>
-			<State id="rain_yesterday_local">
+			<State id="rain_today_raw_mm">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Yesterday Local (device source, not rain-check corrected)</TriggerLabel>
-				<ControlPageLabel>Rain Yesterday Local</ControlPageLabel>
-			</State>
-			<State id="rain_lastweek">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Last 7 Days (rolling total, includes today)</TriggerLabel>
-				<ControlPageLabel>Rain Last Week</ControlPageLabel>
-			</State>
-			<State id="rain_lastmonth">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Last 30 Days (rolling total, includes today)</TriggerLabel>
-				<ControlPageLabel>Rain Last Month</ControlPageLabel>
+				<TriggerLabel>Rain Today Raw (internal)</TriggerLabel>
+				<ControlPageLabel>Rain Today</ControlPageLabel>
 			</State>
 			<State id="rain_today_source">
 				<ValueType>String</ValueType>
 				<TriggerLabel>Rain Today Local Source (hub = device direct / accumulated = per-minute fallback)</TriggerLabel>
 				<ControlPageLabel>Rain Local Source</ControlPageLabel>
 			</State>
-			<State id="precipitation_type">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Precipitation Type</TriggerLabel>
-				<ControlPageLabel>Precip Type</ControlPageLabel>
+			<State id="rain_yesterday">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Yesterday</TriggerLabel>
+				<ControlPageLabel>Rain Yesterday</ControlPageLabel>
 			</State>
-			<State id="last_rain_start">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Last Rain Start Time</TriggerLabel>
-				<ControlPageLabel>Last Rain Start</ControlPageLabel>
+			<State id="rain_yesterday_local">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Yesterday Local (device source, not rain-check corrected)</TriggerLabel>
+				<ControlPageLabel>Rain Yesterday Local</ControlPageLabel>
 			</State>
-			<State id="rain_check">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Rain Check Status (WeatherFlow precipitation analysis)</TriggerLabel>
-				<ControlPageLabel>Rain Check</ControlPageLabel>
-			</State>
-
-			<!-- Reporting -->
 			<State id="report_interval">
 				<ValueType>Integer</ValueType>
 				<TriggerLabel>Report Interval (minutes)</TriggerLabel>
 				<ControlPageLabel>Report Interval</ControlPageLabel>
 			</State>
-
-			<!-- Battery and power -->
-			<State id="battery">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Battery Voltage (V)</TriggerLabel>
-				<ControlPageLabel>Battery V</ControlPageLabel>
-			</State>
-			<State id="battery_percent">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Battery Level (%)</TriggerLabel>
-				<ControlPageLabel>Battery %</ControlPageLabel>
-			</State>
-			<State id="power_save_mode">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Power Save Mode</TriggerLabel>
-				<ControlPageLabel>Power Mode</ControlPageLabel>
-			</State>
-
-			<!-- Active unit indicators -->
-			<State id="unit_temperature">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Active Temperature Unit</TriggerLabel>
-				<ControlPageLabel>Temp Unit</ControlPageLabel>
-			</State>
-			<State id="unit_pressure">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Active Pressure Unit</TriggerLabel>
-				<ControlPageLabel>Pressure Unit</ControlPageLabel>
-			</State>
-			<State id="unit_wind">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Active Wind Speed Unit</TriggerLabel>
-				<ControlPageLabel>Wind Unit</ControlPageLabel>
-			</State>
-			<State id="unit_rain">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Active Rainfall Unit</TriggerLabel>
-				<ControlPageLabel>Rain Unit</ControlPageLabel>
-			</State>
-
-			<!-- Diagnostics -->
 			<State id="rssi">
 				<ValueType>Integer</ValueType>
 				<TriggerLabel>RSSI (dBm)</TriggerLabel>
 				<ControlPageLabel>RSSI dBm</ControlPageLabel>
-			</State>
-			<State id="hub_rssi">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Hub RSSI (dBm)</TriggerLabel>
-				<ControlPageLabel>Hub RSSI dBm</ControlPageLabel>
-			</State>
-			<State id="firmware_revision">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Firmware Revision</TriggerLabel>
-				<ControlPageLabel>Firmware</ControlPageLabel>
-			</State>
-			<State id="hub_sn">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Hub Serial Number</TriggerLabel>
-				<ControlPageLabel>Hub SN</ControlPageLabel>
-			</State>
-			<State id="up_since">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Up Since (UTC)</TriggerLabel>
-				<ControlPageLabel>Up Since</ControlPageLabel>
-			</State>
-			<State id="last_report">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Last Report Time (UTC)</TriggerLabel>
-				<ControlPageLabel>Last Report</ControlPageLabel>
 			</State>
 			<State id="sensor_status">
 				<ValueType>String</ValueType>
 				<TriggerLabel>Sensor Status</TriggerLabel>
 				<ControlPageLabel>Sensor Status</ControlPageLabel>
 			</State>
-			<State id="deviceStatus">
+			<State id="solar_radiation">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Solar Radiation (W/m²)</TriggerLabel>
+				<ControlPageLabel>Solar Rad W/m²</ControlPageLabel>
+			</State>
+			<State id="unit_pressure">
 				<ValueType>String</ValueType>
-				<TriggerLabel>Device Status</TriggerLabel>
-				<ControlPageLabel>Status</ControlPageLabel>
+				<TriggerLabel>Active Pressure Unit</TriggerLabel>
+				<ControlPageLabel>Pressure Unit</ControlPageLabel>
+			</State>
+			<State id="unit_rain">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Rainfall Unit</TriggerLabel>
+				<ControlPageLabel>Rain Unit</ControlPageLabel>
+			</State>
+			<State id="unit_temperature">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Temperature Unit</TriggerLabel>
+				<ControlPageLabel>Temp Unit</ControlPageLabel>
+			</State>
+			<State id="unit_wind">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Wind Speed Unit</TriggerLabel>
+				<ControlPageLabel>Wind Unit</ControlPageLabel>
+			</State>
+			<State id="up_since">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Up Since (UTC)</TriggerLabel>
+				<ControlPageLabel>Up Since</ControlPageLabel>
+			</State>
+			<State id="uv">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>UV Index</TriggerLabel>
+				<ControlPageLabel>UV Index</ControlPageLabel>
+			</State>
+			<State id="wind_average">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Speed Average</TriggerLabel>
+				<ControlPageLabel>Wind Avg</ControlPageLabel>
+			</State>
+			<State id="wind_direction">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Direction (°)</TriggerLabel>
+				<ControlPageLabel>Wind Dir °</ControlPageLabel>
+			</State>
+			<State id="wind_direction_average">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Direction Average (°)</TriggerLabel>
+				<ControlPageLabel>Wind Dir Avg °</ControlPageLabel>
+			</State>
+			<State id="wind_direction_average_cardinal">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Wind Direction Average Cardinal</TriggerLabel>
+				<ControlPageLabel>Wind Dir Avg</ControlPageLabel>
+			</State>
+			<State id="wind_direction_cardinal">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Wind Direction Cardinal</TriggerLabel>
+				<ControlPageLabel>Wind Dir</ControlPageLabel>
+			</State>
+			<State id="wind_gust">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Gust</TriggerLabel>
+				<ControlPageLabel>Wind Gust</ControlPageLabel>
+			</State>
+			<State id="wind_lull">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Lull</TriggerLabel>
+				<ControlPageLabel>Wind Lull</ControlPageLabel>
+			</State>
+			<State id="wind_sample_interval">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Wind Sample Interval (seconds)</TriggerLabel>
+				<ControlPageLabel>Wind Sample s</ControlPageLabel>
+			</State>
+			<State id="wind_speed">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Speed</TriggerLabel>
+				<ControlPageLabel>Wind Speed</ControlPageLabel>
 			</State>
 		</States>
 	</Device>
@@ -935,85 +909,80 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 		</ConfigUI>
 
 		<States>
-			<!-- Temperature -->
+			<State id="air_density">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Air Density (kg/m³)</TriggerLabel>
+				<ControlPageLabel>Air Density kg/m³</ControlPageLabel>
+			</State>
 			<State id="air_temperature">
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Air Temperature</TriggerLabel>
 				<ControlPageLabel>Air Temp</ControlPageLabel>
 			</State>
-			<State id="temperature">
+			<State id="battery">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Temperature (alias for air_temperature)</TriggerLabel>
-				<ControlPageLabel>Temperature</ControlPageLabel>
+				<TriggerLabel>Battery Voltage (V)</TriggerLabel>
+				<ControlPageLabel>Battery V</ControlPageLabel>
 			</State>
-			<State id="dew_point_temperature">
+			<State id="battery_percent">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Dew Point Temperature</TriggerLabel>
-				<ControlPageLabel>Dew Point</ControlPageLabel>
-			</State>
-			<State id="wet_bulb_temperature">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wet Bulb Temperature</TriggerLabel>
-				<ControlPageLabel>Wet Bulb</ControlPageLabel>
-			</State>
-			<State id="heat_index">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Heat Index</TriggerLabel>
-				<ControlPageLabel>Heat Index</ControlPageLabel>
-			</State>
-			<State id="delta_t">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Delta T</TriggerLabel>
-				<ControlPageLabel>Delta T</ControlPageLabel>
-			</State>
-
-			<!-- Atmospheric -->
-			<State id="relative_humidity">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Relative Humidity (%)</TriggerLabel>
-				<ControlPageLabel>Humidity %</ControlPageLabel>
-			</State>
-			<State id="station_pressure">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Station Pressure</TriggerLabel>
-				<ControlPageLabel>Pressure</ControlPageLabel>
-			</State>
-			<State id="sea_level_pressure">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Sea Level Pressure</TriggerLabel>
-				<ControlPageLabel>Sea Level Pressure</ControlPageLabel>
+				<TriggerLabel>Battery Level (%)</TriggerLabel>
+				<ControlPageLabel>Battery %</ControlPageLabel>
 			</State>
 			<State id="cloud_base">
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Cloud Base Altitude</TriggerLabel>
 				<ControlPageLabel>Cloud Base</ControlPageLabel>
 			</State>
+			<State id="delta_t">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Delta T</TriggerLabel>
+				<ControlPageLabel>Delta T</ControlPageLabel>
+			</State>
+			<State id="deviceStatus">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Device Status</TriggerLabel>
+				<ControlPageLabel>Status</ControlPageLabel>
+			</State>
+			<State id="dew_point_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Dew Point Temperature</TriggerLabel>
+				<ControlPageLabel>Dew Point</ControlPageLabel>
+			</State>
+			<State id="firmware_revision">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Firmware Revision</TriggerLabel>
+				<ControlPageLabel>Firmware</ControlPageLabel>
+			</State>
 			<State id="freezing_level">
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Freezing Level Altitude</TriggerLabel>
 				<ControlPageLabel>Freezing Level</ControlPageLabel>
 			</State>
-			<State id="vapor_pressure">
+			<State id="heat_index">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Vapor Pressure</TriggerLabel>
-				<ControlPageLabel>Vapor Pressure</ControlPageLabel>
+				<TriggerLabel>Heat Index</TriggerLabel>
+				<ControlPageLabel>Heat Index</ControlPageLabel>
 			</State>
-			<State id="air_density">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Air Density (kg/m³)</TriggerLabel>
-				<ControlPageLabel>Air Density kg/m³</ControlPageLabel>
-			</State>
-
-			<!-- Lightning -->
-			<State id="lightning_strike_count">
+			<State id="hub_rssi">
 				<ValueType>Integer</ValueType>
-				<TriggerLabel>Lightning Strike Count</TriggerLabel>
-				<ControlPageLabel>Lightning Count</ControlPageLabel>
+				<TriggerLabel>Hub RSSI (dBm)</TriggerLabel>
+				<ControlPageLabel>Hub RSSI dBm</ControlPageLabel>
 			</State>
-			<State id="lightning_strike_average_distance">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Lightning Strike Average Distance</TriggerLabel>
-				<ControlPageLabel>Lightning Dist</ControlPageLabel>
+			<State id="hub_sn">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Hub Serial Number</TriggerLabel>
+				<ControlPageLabel>Hub SN</ControlPageLabel>
+			</State>
+			<State id="last_report">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last Report Time (UTC)</TriggerLabel>
+				<ControlPageLabel>Last Report</ControlPageLabel>
+			</State>
+			<State id="last_report_local">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last Report Time (Local)</TriggerLabel>
+				<ControlPageLabel>Last Report Local</ControlPageLabel>
 			</State>
 			<State id="last_strike_distance">
 				<ValueType>Float</ValueType>
@@ -1030,88 +999,85 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				<TriggerLabel>Last Lightning Strike Time (UTC)</TriggerLabel>
 				<ControlPageLabel>Last Strike Time</ControlPageLabel>
 			</State>
-
-			<!-- Reporting -->
+			<State id="lightning_strike_average_distance">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Lightning Strike Average Distance</TriggerLabel>
+				<ControlPageLabel>Lightning Dist</ControlPageLabel>
+			</State>
+			<State id="lightning_strike_count">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Lightning Strike Count</TriggerLabel>
+				<ControlPageLabel>Lightning Count</ControlPageLabel>
+			</State>
+			<State id="relative_humidity">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Relative Humidity (%)</TriggerLabel>
+				<ControlPageLabel>Humidity %</ControlPageLabel>
+			</State>
 			<State id="report_interval">
 				<ValueType>Integer</ValueType>
 				<TriggerLabel>Report Interval (minutes)</TriggerLabel>
 				<ControlPageLabel>Report Interval</ControlPageLabel>
 			</State>
-
-			<!-- Battery and power -->
-			<State id="battery">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Battery Voltage (V)</TriggerLabel>
-				<ControlPageLabel>Battery V</ControlPageLabel>
-			</State>
-			<State id="battery_percent">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Battery Level (%)</TriggerLabel>
-				<ControlPageLabel>Battery %</ControlPageLabel>
-			</State>
-
-			<!-- Active unit indicators -->
-			<State id="unit_temperature">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Active Temperature Unit</TriggerLabel>
-				<ControlPageLabel>Temp Unit</ControlPageLabel>
-			</State>
-			<State id="unit_pressure">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Active Pressure Unit</TriggerLabel>
-				<ControlPageLabel>Pressure Unit</ControlPageLabel>
-			</State>
-			<State id="unit_wind">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Active Wind Speed Unit</TriggerLabel>
-				<ControlPageLabel>Wind Unit</ControlPageLabel>
-			</State>
-			<State id="unit_rain">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Active Rainfall Unit</TriggerLabel>
-				<ControlPageLabel>Rain Unit</ControlPageLabel>
-			</State>
-
-			<!-- Diagnostics -->
 			<State id="rssi">
 				<ValueType>Integer</ValueType>
 				<TriggerLabel>RSSI (dBm)</TriggerLabel>
 				<ControlPageLabel>RSSI dBm</ControlPageLabel>
 			</State>
-			<State id="hub_rssi">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Hub RSSI (dBm)</TriggerLabel>
-				<ControlPageLabel>Hub RSSI dBm</ControlPageLabel>
-			</State>
-			<State id="firmware_revision">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Firmware Revision</TriggerLabel>
-				<ControlPageLabel>Firmware</ControlPageLabel>
-			</State>
-			<State id="hub_sn">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Hub Serial Number</TriggerLabel>
-				<ControlPageLabel>Hub SN</ControlPageLabel>
-			</State>
-			<State id="up_since">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Up Since (UTC)</TriggerLabel>
-				<ControlPageLabel>Up Since</ControlPageLabel>
-			</State>
-			<State id="last_report">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Last Report Time (UTC)</TriggerLabel>
-				<ControlPageLabel>Last Report</ControlPageLabel>
+			<State id="sea_level_pressure">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Sea Level Pressure</TriggerLabel>
+				<ControlPageLabel>Sea Level Pressure</ControlPageLabel>
 			</State>
 			<State id="sensor_status">
 				<ValueType>String</ValueType>
 				<TriggerLabel>Sensor Status</TriggerLabel>
 				<ControlPageLabel>Sensor Status</ControlPageLabel>
 			</State>
-			<State id="deviceStatus">
+			<State id="station_pressure">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Station Pressure</TriggerLabel>
+				<ControlPageLabel>Pressure</ControlPageLabel>
+			</State>
+			<State id="temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Temperature (alias for air_temperature)</TriggerLabel>
+				<ControlPageLabel>Temperature</ControlPageLabel>
+			</State>
+			<State id="unit_pressure">
 				<ValueType>String</ValueType>
-				<TriggerLabel>Device Status</TriggerLabel>
-				<ControlPageLabel>Status</ControlPageLabel>
+				<TriggerLabel>Active Pressure Unit</TriggerLabel>
+				<ControlPageLabel>Pressure Unit</ControlPageLabel>
+			</State>
+			<State id="unit_rain">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Rainfall Unit</TriggerLabel>
+				<ControlPageLabel>Rain Unit</ControlPageLabel>
+			</State>
+			<State id="unit_temperature">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Temperature Unit</TriggerLabel>
+				<ControlPageLabel>Temp Unit</ControlPageLabel>
+			</State>
+			<State id="unit_wind">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Active Wind Speed Unit</TriggerLabel>
+				<ControlPageLabel>Wind Unit</ControlPageLabel>
+			</State>
+			<State id="up_since">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Up Since (UTC)</TriggerLabel>
+				<ControlPageLabel>Up Since</ControlPageLabel>
+			</State>
+			<State id="vapor_pressure">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Vapor Pressure</TriggerLabel>
+				<ControlPageLabel>Vapor Pressure</ControlPageLabel>
+			</State>
+			<State id="wet_bulb_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wet Bulb Temperature</TriggerLabel>
+				<ControlPageLabel>Wet Bulb</ControlPageLabel>
 			</State>
 		</States>
 	</Device>
@@ -1147,10 +1113,20 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 		</ConfigUI>
 
 		<States>
+			<State id="deviceStatus">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Device Status</TriggerLabel>
+				<ControlPageLabel>Status</ControlPageLabel>
+			</State>
 			<State id="firmware_revision">
 				<ValueType>String</ValueType>
 				<TriggerLabel>Firmware Revision</TriggerLabel>
 				<ControlPageLabel>Firmware</ControlPageLabel>
+			</State>
+			<State id="reset_flags">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Reset Flags</TriggerLabel>
+				<ControlPageLabel>Reset Flags</ControlPageLabel>
 			</State>
 			<State id="rssi">
 				<ValueType>Integer</ValueType>
@@ -1166,16 +1142,6 @@ Use Plugins → WeatherFlow → Generate Devices to auto-create all at once.</La
 				<ValueType>Integer</ValueType>
 				<TriggerLabel>Uptime (seconds)</TriggerLabel>
 				<ControlPageLabel>Uptime sec</ControlPageLabel>
-			</State>
-			<State id="reset_flags">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Reset Flags</TriggerLabel>
-				<ControlPageLabel>Reset Flags</ControlPageLabel>
-			</State>
-			<State id="deviceStatus">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Device Status</TriggerLabel>
-				<ControlPageLabel>Status</ControlPageLabel>
 			</State>
 		</States>
 	</Device>
@@ -1264,210 +1230,15 @@ Find the station ID in the URL on tempestwx.com — e.g. tempestwx.com/station/1
 		</ConfigUI>
 
 		<States>
-			<!-- Temperature -->
-			<State id="air_temperature">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Air Temperature</TriggerLabel>
-				<ControlPageLabel>Air Temp</ControlPageLabel>
-			</State>
-			<State id="dew_point_temperature">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Dew Point Temperature</TriggerLabel>
-				<ControlPageLabel>Dew Point</ControlPageLabel>
-			</State>
-			<State id="wet_bulb_temperature">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wet Bulb Temperature</TriggerLabel>
-				<ControlPageLabel>Wet Bulb</ControlPageLabel>
-			</State>
-			<State id="feels_like_temperature">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Feels Like Temperature</TriggerLabel>
-				<ControlPageLabel>Feels Like</ControlPageLabel>
-			</State>
-			<State id="heat_index">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Heat Index</TriggerLabel>
-				<ControlPageLabel>Heat Index</ControlPageLabel>
-			</State>
-			<State id="wind_chill_temperature">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Chill Temperature</TriggerLabel>
-				<ControlPageLabel>Wind Chill</ControlPageLabel>
-			</State>
-			<State id="delta_t">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Delta T</TriggerLabel>
-				<ControlPageLabel>Delta T</ControlPageLabel>
-			</State>
 			<State id="air_density">
 				<ValueType>Float</ValueType>
 				<TriggerLabel>Air Density (kg/m³)</TriggerLabel>
 				<ControlPageLabel>Air Density</ControlPageLabel>
 			</State>
-
-			<!-- Atmospheric -->
-			<State id="relative_humidity">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Relative Humidity (%)</TriggerLabel>
-				<ControlPageLabel>Humidity %</ControlPageLabel>
-			</State>
-			<State id="station_pressure">
+			<State id="air_temperature">
 				<ValueType>Float</ValueType>
-				<TriggerLabel>Station Pressure</TriggerLabel>
-				<ControlPageLabel>Pressure</ControlPageLabel>
-			</State>
-			<State id="sea_level_pressure">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Sea Level Pressure</TriggerLabel>
-				<ControlPageLabel>SLP</ControlPageLabel>
-			</State>
-			<State id="pressure_trend">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Pressure Trend</TriggerLabel>
-				<ControlPageLabel>Pressure Trend</ControlPageLabel>
-			</State>
-
-			<!-- Light / UV -->
-			<State id="solar_radiation">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Solar Radiation (W/m²)</TriggerLabel>
-				<ControlPageLabel>Solar Rad W/m²</ControlPageLabel>
-			</State>
-			<State id="illuminance">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Illuminance (lux)</TriggerLabel>
-				<ControlPageLabel>Illuminance lux</ControlPageLabel>
-			</State>
-			<State id="uv">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>UV Index</TriggerLabel>
-				<ControlPageLabel>UV Index</ControlPageLabel>
-			</State>
-
-			<!-- Wind -->
-			<State id="wind_average">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Speed Average</TriggerLabel>
-				<ControlPageLabel>Wind Avg</ControlPageLabel>
-			</State>
-			<State id="wind_speed">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Speed (alias for wind_average)</TriggerLabel>
-				<ControlPageLabel>Wind Speed</ControlPageLabel>
-			</State>
-			<State id="wind_gust">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Gust</TriggerLabel>
-				<ControlPageLabel>Wind Gust</ControlPageLabel>
-			</State>
-			<State id="wind_lull">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Lull</TriggerLabel>
-				<ControlPageLabel>Wind Lull</ControlPageLabel>
-			</State>
-			<State id="wind_direction">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Direction (°)</TriggerLabel>
-				<ControlPageLabel>Wind Dir °</ControlPageLabel>
-			</State>
-			<State id="wind_direction_average">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Wind Direction Average (°)</TriggerLabel>
-				<ControlPageLabel>Wind Dir Avg °</ControlPageLabel>
-			</State>
-			<State id="wind_direction_cardinal">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Wind Direction Cardinal</TriggerLabel>
-				<ControlPageLabel>Wind Dir</ControlPageLabel>
-			</State>
-			<State id="wind_direction_average_cardinal">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Wind Direction Average Cardinal</TriggerLabel>
-				<ControlPageLabel>Wind Dir Avg</ControlPageLabel>
-			</State>
-
-			<!-- Rain -->
-			<State id="rain_today">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Today</TriggerLabel>
-				<ControlPageLabel>Rain Today</ControlPageLabel>
-			</State>
-			<State id="rain_yesterday">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Yesterday</TriggerLabel>
-				<ControlPageLabel>Rain Yesterday</ControlPageLabel>
-			</State>
-			<State id="rain_last_1hr">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Rain Last 1 Hour</TriggerLabel>
-				<ControlPageLabel>Rain 1hr</ControlPageLabel>
-			</State>
-			<State id="rain_duration_today">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Rain Duration Today (minutes)</TriggerLabel>
-				<ControlPageLabel>Rain Min Today</ControlPageLabel>
-			</State>
-			<State id="rain_duration_yesterday">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Rain Duration Yesterday (minutes)</TriggerLabel>
-				<ControlPageLabel>Rain Min Yesterday</ControlPageLabel>
-			</State>
-
-			<!-- Lightning -->
-			<State id="lightning_strike_count">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Lightning Strike Count (today)</TriggerLabel>
-				<ControlPageLabel>Lightning Today</ControlPageLabel>
-			</State>
-			<State id="lightning_count_last_1hr">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Lightning Strikes Last 1 Hour</TriggerLabel>
-				<ControlPageLabel>Lightning 1hr</ControlPageLabel>
-			</State>
-			<State id="lightning_count_last_3hr">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Lightning Strikes Last 3 Hours</TriggerLabel>
-				<ControlPageLabel>Lightning 3hr</ControlPageLabel>
-			</State>
-			<State id="last_strike_distance">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Last Lightning Strike Distance</TriggerLabel>
-				<ControlPageLabel>Last Strike Dist</ControlPageLabel>
-			</State>
-
-			<!-- Station identity -->
-			<State id="station_name">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Station Name</TriggerLabel>
-				<ControlPageLabel>Station Name</ControlPageLabel>
-			</State>
-			<State id="latitude">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Station Latitude</TriggerLabel>
-				<ControlPageLabel>Latitude</ControlPageLabel>
-			</State>
-			<State id="longitude">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Station Longitude</TriggerLabel>
-				<ControlPageLabel>Longitude</ControlPageLabel>
-			</State>
-			<State id="elevation">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Station Elevation (m)</TriggerLabel>
-				<ControlPageLabel>Elevation m</ControlPageLabel>
-			</State>
-
-			<!-- Distance from Indigo server -->
-			<State id="distance_km">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Distance from Indigo Server (km)</TriggerLabel>
-				<ControlPageLabel>Distance</ControlPageLabel>
-			</State>
-			<State id="distance_mi">
-				<ValueType>Float</ValueType>
-				<TriggerLabel>Distance from Indigo Server (miles)</TriggerLabel>
-				<ControlPageLabel>Distance mi</ControlPageLabel>
+				<TriggerLabel>Air Temperature</TriggerLabel>
+				<ControlPageLabel>Air Temp</ControlPageLabel>
 			</State>
 			<State id="bearing">
 				<ValueType>Float</ValueType>
@@ -1479,44 +1250,220 @@ Find the station ID in the URL on tempestwx.com — e.g. tempestwx.com/station/1
 				<TriggerLabel>Bearing Cardinal Direction</TriggerLabel>
 				<ControlPageLabel>Direction</ControlPageLabel>
 			</State>
+			<State id="delta_t">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Delta T</TriggerLabel>
+				<ControlPageLabel>Delta T</ControlPageLabel>
+			</State>
+			<State id="deviceStatus">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Device Status</TriggerLabel>
+				<ControlPageLabel>Status</ControlPageLabel>
+			</State>
+			<State id="dew_point_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Dew Point Temperature</TriggerLabel>
+				<ControlPageLabel>Dew Point</ControlPageLabel>
+			</State>
 			<State id="distance_description">
 				<ValueType>String</ValueType>
 				<TriggerLabel>Distance Description (e.g. 1.5 km North)</TriggerLabel>
 				<ControlPageLabel>Distance</ControlPageLabel>
 			</State>
-
-			<!-- Unit indicators -->
-			<State id="unit_temperature">
+			<State id="distance_km">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Distance from Indigo Server (km)</TriggerLabel>
+				<ControlPageLabel>Distance</ControlPageLabel>
+			</State>
+			<State id="distance_mi">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Distance from Indigo Server (miles)</TriggerLabel>
+				<ControlPageLabel>Distance mi</ControlPageLabel>
+			</State>
+			<State id="elevation">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Station Elevation (m)</TriggerLabel>
+				<ControlPageLabel>Elevation m</ControlPageLabel>
+			</State>
+			<State id="feels_like_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Feels Like Temperature</TriggerLabel>
+				<ControlPageLabel>Feels Like</ControlPageLabel>
+			</State>
+			<State id="heat_index">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Heat Index</TriggerLabel>
+				<ControlPageLabel>Heat Index</ControlPageLabel>
+			</State>
+			<State id="illuminance">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Illuminance (lux)</TriggerLabel>
+				<ControlPageLabel>Illuminance lux</ControlPageLabel>
+			</State>
+			<State id="last_strike_distance">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Last Lightning Strike Distance</TriggerLabel>
+				<ControlPageLabel>Last Strike Dist</ControlPageLabel>
+			</State>
+			<State id="last_updated">
 				<ValueType>String</ValueType>
-				<TriggerLabel>Active Temperature Unit</TriggerLabel>
-				<ControlPageLabel>Temp Unit</ControlPageLabel>
+				<TriggerLabel>Last Updated (local time)</TriggerLabel>
+				<ControlPageLabel>Last Updated</ControlPageLabel>
+			</State>
+			<State id="latitude">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Station Latitude</TriggerLabel>
+				<ControlPageLabel>Latitude</ControlPageLabel>
+			</State>
+			<State id="lightning_count_last_1hr">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Lightning Strikes Last 1 Hour</TriggerLabel>
+				<ControlPageLabel>Lightning 1hr</ControlPageLabel>
+			</State>
+			<State id="lightning_count_last_3hr">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Lightning Strikes Last 3 Hours</TriggerLabel>
+				<ControlPageLabel>Lightning 3hr</ControlPageLabel>
+			</State>
+			<State id="lightning_strike_count">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Lightning Strike Count (today)</TriggerLabel>
+				<ControlPageLabel>Lightning Today</ControlPageLabel>
+			</State>
+			<State id="longitude">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Station Longitude</TriggerLabel>
+				<ControlPageLabel>Longitude</ControlPageLabel>
+			</State>
+			<State id="pressure_trend">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Pressure Trend</TriggerLabel>
+				<ControlPageLabel>Pressure Trend</ControlPageLabel>
+			</State>
+			<State id="rain_duration_today">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Rain Duration Today (minutes)</TriggerLabel>
+				<ControlPageLabel>Rain Min Today</ControlPageLabel>
+			</State>
+			<State id="rain_duration_yesterday">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Rain Duration Yesterday (minutes)</TriggerLabel>
+				<ControlPageLabel>Rain Min Yesterday</ControlPageLabel>
+			</State>
+			<State id="rain_last_1hr">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Last 1 Hour</TriggerLabel>
+				<ControlPageLabel>Rain 1hr</ControlPageLabel>
+			</State>
+			<State id="rain_today">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Today</TriggerLabel>
+				<ControlPageLabel>Rain Today</ControlPageLabel>
+			</State>
+			<State id="rain_yesterday">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Rain Yesterday</TriggerLabel>
+				<ControlPageLabel>Rain Yesterday</ControlPageLabel>
+			</State>
+			<State id="relative_humidity">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Relative Humidity (%)</TriggerLabel>
+				<ControlPageLabel>Humidity %</ControlPageLabel>
+			</State>
+			<State id="sea_level_pressure">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Sea Level Pressure</TriggerLabel>
+				<ControlPageLabel>SLP</ControlPageLabel>
+			</State>
+			<State id="solar_radiation">
+				<ValueType>Integer</ValueType>
+				<TriggerLabel>Solar Radiation (W/m²)</TriggerLabel>
+				<ControlPageLabel>Solar Rad W/m²</ControlPageLabel>
+			</State>
+			<State id="station_name">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Station Name</TriggerLabel>
+				<ControlPageLabel>Station Name</ControlPageLabel>
+			</State>
+			<State id="station_pressure">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Station Pressure</TriggerLabel>
+				<ControlPageLabel>Pressure</ControlPageLabel>
 			</State>
 			<State id="unit_pressure">
 				<ValueType>String</ValueType>
 				<TriggerLabel>Active Pressure Unit</TriggerLabel>
 				<ControlPageLabel>Pressure Unit</ControlPageLabel>
 			</State>
-			<State id="unit_wind">
-				<ValueType>String</ValueType>
-				<TriggerLabel>Active Wind Speed Unit</TriggerLabel>
-				<ControlPageLabel>Wind Unit</ControlPageLabel>
-			</State>
 			<State id="unit_rain">
 				<ValueType>String</ValueType>
 				<TriggerLabel>Active Rainfall Unit</TriggerLabel>
 				<ControlPageLabel>Rain Unit</ControlPageLabel>
 			</State>
-
-			<!-- Status -->
-			<State id="deviceStatus">
+			<State id="unit_temperature">
 				<ValueType>String</ValueType>
-				<TriggerLabel>Device Status</TriggerLabel>
-				<ControlPageLabel>Status</ControlPageLabel>
+				<TriggerLabel>Active Temperature Unit</TriggerLabel>
+				<ControlPageLabel>Temp Unit</ControlPageLabel>
 			</State>
-			<State id="last_updated">
+			<State id="unit_wind">
 				<ValueType>String</ValueType>
-				<TriggerLabel>Last Updated (local time)</TriggerLabel>
-				<ControlPageLabel>Last Updated</ControlPageLabel>
+				<TriggerLabel>Active Wind Speed Unit</TriggerLabel>
+				<ControlPageLabel>Wind Unit</ControlPageLabel>
+			</State>
+			<State id="uv">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>UV Index</TriggerLabel>
+				<ControlPageLabel>UV Index</ControlPageLabel>
+			</State>
+			<State id="wet_bulb_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wet Bulb Temperature</TriggerLabel>
+				<ControlPageLabel>Wet Bulb</ControlPageLabel>
+			</State>
+			<State id="wind_average">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Speed Average</TriggerLabel>
+				<ControlPageLabel>Wind Avg</ControlPageLabel>
+			</State>
+			<State id="wind_chill_temperature">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Chill Temperature</TriggerLabel>
+				<ControlPageLabel>Wind Chill</ControlPageLabel>
+			</State>
+			<State id="wind_direction">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Direction (°)</TriggerLabel>
+				<ControlPageLabel>Wind Dir °</ControlPageLabel>
+			</State>
+			<State id="wind_direction_average">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Direction Average (°)</TriggerLabel>
+				<ControlPageLabel>Wind Dir Avg °</ControlPageLabel>
+			</State>
+			<State id="wind_direction_average_cardinal">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Wind Direction Average Cardinal</TriggerLabel>
+				<ControlPageLabel>Wind Dir Avg</ControlPageLabel>
+			</State>
+			<State id="wind_direction_cardinal">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Wind Direction Cardinal</TriggerLabel>
+				<ControlPageLabel>Wind Dir</ControlPageLabel>
+			</State>
+			<State id="wind_gust">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Gust</TriggerLabel>
+				<ControlPageLabel>Wind Gust</ControlPageLabel>
+			</State>
+			<State id="wind_lull">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Lull</TriggerLabel>
+				<ControlPageLabel>Wind Lull</ControlPageLabel>
+			</State>
+			<State id="wind_speed">
+				<ValueType>Float</ValueType>
+				<TriggerLabel>Wind Speed (alias for wind_average)</TriggerLabel>
+				<ControlPageLabel>Wind Speed</ControlPageLabel>
 			</State>
 		</States>
 	</Device>

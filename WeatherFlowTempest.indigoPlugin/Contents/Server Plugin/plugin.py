@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import json
+import locale
 import logging
 import math
 import os
@@ -302,6 +303,11 @@ class Plugin(indigo.PluginBase):
 
     def startup(self) -> None:
         self.logger.info("WeatherFlow Tempest: starting")
+        try:
+            # Pick up the Mac's locale so %x/%X date formatting is localised
+            locale.setlocale(locale.LC_TIME, "")
+        except Exception:
+            pass
         _patch_tempest_device()
         _patch_sky_device()
         self._load_rain_history()
@@ -2453,6 +2459,14 @@ def _build_observation_states(
     # --- Timestamps / diagnostics ---
     if device.last_report:
         states.append({"key": "last_report", "value": str(device.last_report)})
+        try:
+            # Locale-formatted local time (LC_TIME set in startup)
+            _lr_local = device.last_report.astimezone()
+            states.append(
+                {"key": "last_report_local", "value": _lr_local.strftime("%x %X")}
+            )
+        except Exception:
+            pass
 
     _psm = getattr(device, "power_save_mode", None)
     if _psm is not None:
