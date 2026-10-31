@@ -2,9 +2,20 @@
 
 # Public Tempest Station
 
-The **Public Tempest Station** device type lets you monitor any publicly-shared WeatherFlow station on [tempestwx.com](https://tempestwx.com) — no personal API token and no WeatherFlow account required. All you need is the station's numeric ID from its URL.
+> ## ⚠️ WeatherFlow access policy change (October 2026)
+>
+> **WeatherFlow now restricts API access to stations owned by — or explicitly shared with — your account.** Third-party public stations (anyone else's station) are **no longer accessible** without Enterprise-level access from WeatherFlow. This is a WeatherFlow server-side policy (their [Remote Data Access Policy](https://community.tempest.earth/t/tempest-api-for-all-public-tempest-stations/10155)); it affects every third-party integration and cannot be worked around by the plugin.
+>
+> **What still works** (requires your personal API token in Plugin Config → free from tempestwx.com → Settings → Data Authorizations):
+>
+> - **Your own stations** — including accessing your own station remotely from a different network, which is a common use of this device type
+> - **Stations explicitly shared with your WeatherFlow account** by their owner
+>
+> Devices pointing at anyone else's station will log a single warning and suspend polling (plugin 2.6.3+).
 
-This makes it possible to build a network of weather reference points surrounding your Indigo location: a neighbour's rooftop station to the north, a coastal station to the west, an inland station tracking temperature inversions. Each device polls independently every 120 seconds and surfaces the same rich weather dataset as a local Tempest, plus direction and distance states that tell you exactly where each station sits relative to your Indigo server.
+The **Public Tempest Station** device type lets you monitor a WeatherFlow station by its station ID — without needing it on your local network. As of the October 2026 WeatherFlow policy change this is limited to your own stations and stations shared with your account (see notice above), and a personal API token must be entered in Plugin Config.
+
+The typical use is accessing your own Tempest remotely — e.g. Indigo runs at home but your Tempest is at a holiday house on a different network. Each device polls independently every 120 seconds and surfaces the same rich weather dataset as a local Tempest, plus direction and distance states that tell you exactly where each station sits relative to your Indigo server.
 
 <img src="https://raw.githubusercontent.com/Ghawken/WeatherFlowTempest/main/Images/weather_divider_top_animated.gif" width="100%">
 

@@ -1712,7 +1712,32 @@ class Plugin(indigo.PluginBase):
             else:
                 new_count = fail_count + 1
                 self._public_fail_count[station_id] = new_count
-                if new_count < _SUSPEND_AFTER:
+                if err and "404" in err:
+                    # WeatherFlow Remote Data Access Policy: API tokens can only read
+                    # stations owned by (or shared with) the token's account. 404 here
+                    # means this station belongs to someone else — retrying cannot help.
+                    self._public_fail_count[station_id] = _SUSPEND_AFTER
+                    self.logger.warning(
+                        "%s: station %d is not accessible (HTTP 404). WeatherFlow now "
+                        "restricts API access to stations owned by — or shared with — "
+                        "your account; third-party public stations require Enterprise "
+                        "access from WeatherFlow. If this is your own station, make sure "
+                        "your personal API token is entered in Plugin Config. Polling "
+                        "suspended for this device.",
+                        dev.name, station_id,
+                    )
+                elif (
+                    err and "401" in err
+                    and not self.pluginPrefs.get("apiToken", "").strip()
+                ):
+                    self.logger.warning(
+                        "%s: public station %d poll error — %s. WeatherFlow has revoked "
+                        "anonymous public-station access. Enter a personal API token in "
+                        "Plugin Config (free — create one at tempestwx.com → Settings → "
+                        "Data Authorizations).",
+                        dev.name, station_id, err,
+                    )
+                elif new_count < _SUSPEND_AFTER:
                     self.logger.warning(
                         "%s: public station %d poll error — %s", dev.name, station_id, err
                     )
@@ -1726,16 +1751,22 @@ class Plugin(indigo.PluginBase):
     async def _fetch_public_station_obs(
         self, station_id: int
     ) -> tuple[dict | None, str | None]:
-        """Fetch observations for a public station using the system API key.
+        """Fetch observations for a public station.
+
+        Prefers the user's personal API token (documented, reliable) and falls back
+        to the shared tempestwx.com web key. WeatherFlow revoked the long-standing
+        shared key in Oct 2026 (HTTP 401), so a personal token is effectively
+        required — any valid token can query any public station.
 
         Always requests metric units — conversion to user preference is handled in
         _build_public_obs_states via _add_u / Pint, identical to the personal-station
         path in _build_web_observation_states.  Relying on the observations/station
         endpoint to apply unit params is unreliable with the public API key.
         """
+        api_key = self.pluginPrefs.get("apiToken", "").strip() or _PUBLIC_API_KEY
         url = (
             f"{_WEB_API_BASE}/observations/station/{station_id}"
-            f"?api_key={_PUBLIC_API_KEY}"
+            f"?api_key={api_key}"
             f"&units_temp=c&units_wind=mps&units_pressure=mb&units_precip=mm&units_distance=km"
         )
         loop = asyncio.get_running_loop()

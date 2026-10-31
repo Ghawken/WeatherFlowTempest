@@ -10,6 +10,7 @@ All notable changes to the WeatherFlow Tempest plugin are listed here. Each rele
 
 | Version | Date | Summary |
 |---|---|---|
+| [**2.6.3**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.6.3) | 2026-10-31 | Respond to WeatherFlow access policy change: public-station polling now uses your personal API token (own/shared stations keep working, incl. remote access to your own station); third-party public stations are no longer accessible (WeatherFlow Enterprise only) — clear warning + suspend instead of repeated errors |
 | [**2.6.2**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.6.2) | 2026-10-09 | New `rain_prevweek` (days 7–13 back) and `rain_prevmonth` (days 30–59 back) comparison states — the rolling window before `rain_lastweek`/`rain_lastmonth`; rain history retention extended to 62 days |
 | [**2.6.1**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.6.1) | 2026-10-08 | Device state lists in trigger/condition/control-page menus now sorted alphabetically; new `last_report_local` state showing last report time in local time zone with system locale formatting |
 | [**2.6.0**](https://github.com/Ghawken/WeatherFlowTempest/wiki/Release-2.6.0) | 2026-09-21 | New `rain_lastweek` and `rain_lastmonth` states — rolling 7-day and 30-day rain totals calculated by the plugin and persisted to disk; ideal for irrigation logic. Tempest and Sky devices, respects rainfall unit preference |
